@@ -7,7 +7,7 @@ batchexample:
 
 sdlexample:
 		g++ -Wall -O3 -fopenmp `sdl-config --cflags` sdlExample.cpp -lSDL -lSDL_image -o sdlExample
-		
+
 camexample:
 		g++ -Wall -O3 -fopenmp camExample.cpp `pkg-config opencv --cflags --libs` -o camExample
 

@@ -136,6 +136,8 @@ public:
   ObjectBox getObjectBox() const { return ivCurrentBoxes[0]; };
   /// Returns the current object positions.
   std::vector<ObjectBox> getObjectBoxes() const { return ivCurrentBoxes; };
+  /// False if input center overlaps any current objects
+  bool isNewObject(ObjectBox inBox);
   /** @brief Saves an output image to file in PPM format.
    * @param src the same as passed to processFrame()
    * @param filename the filename, suggested ending: ".ppm"
@@ -267,6 +269,21 @@ int MultiObjectTLD::getStatus(const int objId) const
   if (ivDefined[objId])
     return STATUS_UNSURE;
   return STATUS_LOST;
+}
+
+bool MultiObjectTLD::isNewObject(ObjectBox inBox)
+{
+  int xMid = inBox.x + inBox.width/2;
+  int yMid = inBox.y + inBox.height/2;
+
+  for( std::vector<ObjectBox>::const_iterator r = ivCurrentBoxes.begin(); r != ivCurrentBoxes.end(); r++ )
+  {
+    if(xMid < (r->x + r->width) && xMid > r->x)
+      return false;
+    if(yMid < (r->y + r->height) && yMid > r->y)
+      return false;
+  }
+  return true;
 }
 
 void MultiObjectTLD::processFrame(unsigned char * img)

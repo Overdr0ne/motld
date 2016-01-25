@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 /*
 This is a live demo invoking a webcam.
 It makes use of OpenCV to capture the frames and highgui to display the output.
@@ -35,8 +35,8 @@ There are some keys to customize which components are displayed:
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "cv.h" 
-#include "highgui.h" 
+#include "cv.h"
+#include "highgui.h"
 
 #include "motld/MultiObjectTLD.h"
 
@@ -59,6 +59,7 @@ ObjectBox mouseBox = {0,0,0,0,0};
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
 bool learningEnabled = true, save = false, load = false, reset = false;
+std::string cascadePath = "/home/sam/src/opencv-3.1.0/data/haarcascades/haarcascade_frontalface_alt.xml";
 
 void Init(int argc, char *argv[]);
 void* Run(void*);
@@ -76,7 +77,7 @@ int main(int argc, char *argv[])
 
 
 void Init(int argc, char *argv[])
-{  
+{
   capture = cvCaptureFromCAM(CV_CAP_ANY);
   if(!capture){
     std::cout << "error starting video capture" << std::endl;
@@ -93,12 +94,12 @@ void Init(int argc, char *argv[])
   ivWidth = RESOLUTION_X;
   ivHeight = RESOLUTION_Y;
   #endif
-  
+
   cvNamedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
-  
+
   CvSize wsize = {ivWidth, ivHeight};
   curImage = cvCreateImage(wsize, IPL_DEPTH_8U, 3);
-  
+
   cvResizeWindow("MOCTLD", ivWidth, ivHeight);
   cvSetMouseCallback("MOCTLD", MouseHandler);
 }
@@ -106,7 +107,10 @@ void Init(int argc, char *argv[])
 void* Run(void*)
 {
   int size = ivWidth*ivHeight;
-    
+  cv::CascadeClassifier cascade;
+  std::vector<cv::Rect> detectedFaces;
+  ObjectBox detectBox;
+
   // Initialize MultiObjectTLD
   #if LOADCLASSIFIERATSTART
   MultiObjectTLD p = MultiObjectTLD::loadClassifier((char*)CLASSIFIERFILENAME);
@@ -115,7 +119,7 @@ void* Run(void*)
   settings.useColor = false;
   MultiObjectTLD p(ivWidth, ivHeight, settings);
   #endif
-  
+
   Matrix maRed;
   Matrix maGreen;
   Matrix maBlue;
@@ -125,7 +129,7 @@ void* Run(void*)
   IplImage* frame = cvCreateImage(wsize, IPL_DEPTH_8U, 3);
   #endif
   while(!ivQuit)
-  {    
+  {
     /*
     if(reset){
       p = *(new MultiObjectTLD(ivWidth, ivHeight, COLOR_MODE_RGB));
@@ -136,7 +140,7 @@ void* Run(void*)
       load = false;
     }
     */
-    
+
     // Grab an image
     if(!cvGrabFrame(capture)){
       std::cout << "error grabbing frame" << std::endl;
@@ -153,19 +157,44 @@ void* Run(void*)
       img[j+size] = frame->imageData[j*3+1];
       img[j+2*size] = frame->imageData[j*3];
     }
-    
+
     // Process it with motld
     p.processFrame(img);
-    
+
     // Add new box
     if(mouseMode == MOUSE_MODE_ADD_BOX){
       p.addObject(mouseBox);
       mouseMode = MOUSE_MODE_IDLE;
     }
-    
+
+    if(cascadePath != "")
+    {
+      //printf("cascade: %s\n", cascadePath);
+      //std::cout << "cascade: " << cascadePath << std::endl;
+      cascade.load( cascadePath );
+      cv::Mat matImg = cv::Mat(frame);
+      cascade.detectMultiScale( matImg, detectedFaces,
+        1.1, 2, 0
+        //|CASCADE_FIND_BIGGEST_OBJECT
+        //|CASCADE_DO_ROUGH_SEARCH
+        |cv::CASCADE_SCALE_IMAGE,
+        cv::Size(30, 30) );
+
+      for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
+      {
+        detectBox.x = r->x;
+        detectBox.y = r->y;
+        detectBox.width = r->width;
+        detectBox.height = r->height;
+        if(p.isNewObject(detectBox))
+          p.addObject(detectBox);
+      }
+      //printf("size detectedFaces: %i\n", detectedFaces.size());
+    }
+
     // Display result
     HandleInput();
-    p.getDebugImage(img, maRed, maGreen, maBlue, drawMode);    
+    p.getDebugImage(img, maRed, maGreen, maBlue, drawMode);
     FromRGB(maRed, maGreen, maBlue);
     cvShowImage("MOCTLD", curImage);
     p.enableLearning(learningEnabled);
