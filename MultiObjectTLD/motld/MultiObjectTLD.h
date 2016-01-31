@@ -25,6 +25,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <array>
 #include "LKTracker.h"
 #include "FernFilter.h"
 #include "NNClassifier.h"
@@ -42,7 +43,7 @@
 #define DEBUG_DRAW_DETECTIONS 1
 #define DEBUG_DRAW_PATCHES 2
 #define DEBUG_DRAW_CROSSES 4
-
+#define DEBUG_DRAW_PATH 8
 
 #define ENABLE_CLUSTERING 1
 
@@ -138,6 +139,8 @@ public:
   std::vector<ObjectBox> getObjectBoxes() const { return ivCurrentBoxes; };
   /// False if input center overlaps any current objects
   bool isNewObject(ObjectBox inBox);
+  /// adds the new current position to a path buffer for each object
+  //void trackPaths();
   /** @brief Saves an output image to file in PPM format.
    * @param src the same as passed to processFrame()
    * @param filename the filename, suggested ending: ".ppm"
@@ -290,6 +293,7 @@ void MultiObjectTLD::processFrame(unsigned char * img)
 {
   ivCurImagePtr = img;
   ivCurImage = Matrix(ivWidth, ivHeight);
+  std::array<int,2> midPt;
   /*Matrix curImageR;
   Matrix curImageG;
   Matrix curImageB;*/
@@ -449,16 +453,19 @@ void MultiObjectTLD::processFrame(unsigned char * img)
                 tmpy += ivLastDetections[i].box.y;
                 tmpw += ivLastDetections[i].box.width;
                 tmph += ivLastDetections[i].box.height;
-              }            
+              }
             }
           }
-        }  
+        }
         if (tmpn > 10)
         {
           ivCurrentBoxes[o].x = tmpx / tmpn;
           ivCurrentBoxes[o].y = tmpy / tmpn;
           ivCurrentBoxes[o].width = tmpw / tmpn;
           ivCurrentBoxes[o].height = tmph / tmpn;
+          midPt[0] = ivCurrentBoxes[o].x + (ivCurrentBoxes[o].width/2);
+          midPt[1] = ivCurrentBoxes[o].y + (ivCurrentBoxes[o].height/2);
+          ivCurrentBoxes[o].path.push_back(midPt);
           ivCurrentPatches[o] = NNPatch(ivCurrentBoxes[o], ivCurImage, ivPatchSize,
                                   ivUseColor ? img : NULL, ivWidth, ivHeight);
           tConf[o] = ivNNClassifier.getConf(ivCurrentPatches[o], o, false);
@@ -672,33 +679,53 @@ void MultiObjectTLD::writeDebugImage(unsigned char * src, char* filename, int mo
 }
 
 void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gMat, Matrix& bMat, int mode) const
-{ 
+{
   int size = ivHeight * ivWidth;
+  std::array<int,2> prevPt;
+  int count;
+  int STABILIZE_CNT = 5;
   rMat.setSize(ivWidth, ivHeight); 
   rMat.copyFromCharArray(src);
   gMat.setSize(ivWidth, ivHeight); 
   gMat.copyFromCharArray(src + (ivColorMode == COLOR_MODE_RGB ? size : 0));
   bMat.setSize(ivWidth, ivHeight); 
   bMat.copyFromCharArray(src + (ivColorMode == COLOR_MODE_RGB ? 2*size : 0));
-  
+
+  if (mode & DEBUG_DRAW_PATH)
+  {
+    for( std::vector<ObjectBox>::const_iterator boxi = ivCurrentBoxes.begin(); boxi != ivCurrentBoxes.end(); boxi++ )
+    {
+      count = 0;
+      for( std::vector<std::array<int,2>>::const_iterator pti = boxi->path.begin(); pti != boxi->path.end(); pti++ )
+      {
+        if(count > STABILIZE_CNT)
+          rMat.drawLine(prevPt[0],prevPt[1],(*pti)[0],(*pti)[1],200);
+          //printf("[%i,%i] ",(*pti)[0],(*pti)[1]);
+        else
+          count++;
+        prevPt = *pti;
+      }
+    }
+  }
+
   if (mode & DEBUG_DRAW_DETECTIONS)
   {
-    for (std::vector<FernDetection>::const_iterator it = ivLastDetections.begin(); 
+    for (std::vector<FernDetection>::const_iterator it = ivLastDetections.begin();
           it < ivLastDetections.end(); ++it)
     {
       gMat.drawDashedBox(it->box, 255, 3, true);
       if (ivNObjects > 1)
         gMat.drawNumber(it->box.x, it->box.y, it->box.objectId);
     }
-    
-    for (std::vector<FernDetection>::const_iterator it = ivLastDetectionClusters.begin(); 
+
+    for (std::vector<FernDetection>::const_iterator it = ivLastDetectionClusters.begin();
             it < ivLastDetectionClusters.end(); ++it)
     {
       bMat.drawDashedBox(it->box, 255);
       gMat.drawDashedBox(it->box, 0);
     }
   }
-  
+
   for (int i = 0; i < ivNObjects; i++)
     if (ivDefined[i])
     {
@@ -728,8 +755,8 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
   
   const std::vector<std::vector<NNPatch> > * posPatches = ivNNClassifier.getPosPatches();
   const std::vector<NNPatch> * negPatches = ivNNClassifier.getNegPatches();
-    
-  unsigned int picspercol = ivHeight / ivPatchSize;  
+
+  unsigned int picspercol = ivHeight / ivPatchSize;
 
   if (mode & DEBUG_DRAW_PATCHES)
     for (unsigned int i = 0; i < negPatches->size() && i < 3*picspercol; ++i)

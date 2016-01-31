@@ -58,7 +58,7 @@ CvCapture* capture;
 ObjectBox mouseBox = {0,0,0,0,0};
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
-bool learningEnabled = true, save = false, load = false, reset = false;
+bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true;
 std::string cascadePath = "/home/sam/src/opencv-3.1.0/data/haarcascades/haarcascade_frontalface_alt.xml";
 
 void Init(int argc, char *argv[]);
@@ -107,8 +107,10 @@ void Init(int argc, char *argv[])
 void* Run(void*)
 {
   int size = ivWidth*ivHeight;
+  int count = 1;
   cv::CascadeClassifier cascade;
   std::vector<cv::Rect> detectedFaces;
+  std::vector<ObjectBox> trackBoxes;
   ObjectBox detectBox;
 
   // Initialize MultiObjectTLD
@@ -167,7 +169,7 @@ void* Run(void*)
       mouseMode = MOUSE_MODE_IDLE;
     }
 
-    if(cascadePath != "")
+    if((cascadePath != "") && ((count%20)==0) && cascadeDetect)
     {
       //printf("cascade: %s\n", cascadePath);
       //std::cout << "cascade: " << cascadePath << std::endl;
@@ -191,6 +193,7 @@ void* Run(void*)
       }
       //printf("size detectedFaces: %i\n", detectedFaces.size());
     }
+    count++;
 
     // Display result
     HandleInput();
@@ -218,6 +221,8 @@ void HandleInput(int interval)
       case 'd': drawMode ^= DEBUG_DRAW_DETECTIONS;  break;
       case 't': drawMode ^= DEBUG_DRAW_CROSSES;  break;
       case 'p': drawMode ^= DEBUG_DRAW_PATCHES;  break;
+      case 'h': drawMode ^= DEBUG_DRAW_PATH;  break;
+      case 'c': cascadeDetect = true;  break;
       case 'l':
         learningEnabled = !learningEnabled;
         std::cout << "learning " << (learningEnabled? "en" : "dis") << "abled" << std::endl;
@@ -226,7 +231,7 @@ void HandleInput(int interval)
       case 's': save = true;  break;
       case 'o': load = true;  break;
       case 27:  ivQuit = true; break; //ESC
-      default: 
+      default:
         //std::cout << "unhandled key-code: " << key << std::endl;
         break;
     }
