@@ -139,6 +139,8 @@ public:
   std::vector<ObjectBox> getObjectBoxes() const { return ivCurrentBoxes; };
   /// False if input center overlaps any current objects
   bool isNewObject(ObjectBox inBox);
+  /// set gate threshold
+  void setGateThreshold(std::array<int,2> inThreshold);
   /// adds the new current position to a path buffer for each object
   //void trackPaths();
   /** @brief Saves an output image to file in PPM format.
@@ -170,6 +172,7 @@ private:
   int ivColorMode;
   int ivPatchSize;
   int ivBBmin;
+  int ivGateCount;
   bool ivUseColor;
   bool ivEnableFastRotation;
   LKTracker ivLKTracker;
@@ -182,6 +185,7 @@ private:
   std::vector<bool> ivDefined;
   std::vector<bool> ivValid;
   std::vector<NNPatch> ivCurrentPatches;
+  std::array<int,2> ivGateThreshold;
   bool ivLearningEnabled;
   
   Matrix ivCurImage;

@@ -58,7 +58,7 @@ CvCapture* capture;
 ObjectBox mouseBox = {0,0,0,0,0};
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
-bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true;
+bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true;;
 std::string cascadePath = "/home/sam/src/opencv-3.1.0/data/haarcascades/haarcascade_frontalface_alt.xml";
 
 void Init(int argc, char *argv[]);
@@ -122,6 +122,9 @@ void* Run(void*)
   MultiObjectTLD p(ivWidth, ivHeight, settings);
   #endif
 
+  if(cascadePath != "")
+    cascade.load( cascadePath );
+
   Matrix maRed;
   Matrix maGreen;
   Matrix maBlue;
@@ -169,11 +172,8 @@ void* Run(void*)
       mouseMode = MOUSE_MODE_IDLE;
     }
 
-    if((cascadePath != "") && ((count%20)==0) && cascadeDetect)
+    if(((count%20)==0) && cascadeDetect)
     {
-      //printf("cascade: %s\n", cascadePath);
-      //std::cout << "cascade: " << cascadePath << std::endl;
-      cascade.load( cascadePath );
       cv::Mat matImg = cv::Mat(frame);
       cascade.detectMultiScale( matImg, detectedFaces,
         1.1, 2, 0
