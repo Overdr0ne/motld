@@ -9,7 +9,7 @@ sdlexample:
 		g++ -Wall -O3 -fopenmp `sdl-config --cflags` sdlExample.cpp -lSDL -lSDL_image -o sdlExample
 
 camexample:
-		g++ -Wall -O3 -fopenmp -std=c++11 camExample.cpp `pkg-config opencv --cflags --libs` -o camExample
+		g++ -g -Wall -O3 -fopenmp -std=c++11 camExample.cpp `pkg-config opencv --cflags --libs` -o camExample
 
 debug:
 		g++ -Wall -Wno-write-strings -Wno-unknown-pragmas -g -pg batchExample.cpp -o batchExample

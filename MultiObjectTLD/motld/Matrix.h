@@ -68,7 +68,7 @@ struct ObjectBox
   float height;
   /// identifies object, which is represented by ObjectBox
   int objectId;
-  std::vector<std::array<int,2>> path;
+  std::vector<CvPoint> path;
 };
 
 /// datastructure for images (greyscale or single color)

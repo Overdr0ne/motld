@@ -51,21 +51,34 @@ There are some keys to customize which components are displayed:
 #define MOUSE_MODE_MARKER 0
 #define MOUSE_MODE_ADD_BOX 1
 #define MOUSE_MODE_IDLE 2
+#define MOUSE_MODE_ADD_GATE 4
 IplImage* curImage = NULL;
 bool ivQuit = false;
 int ivWidth, ivHeight;
 CvCapture* capture;
 ObjectBox mouseBox = {0,0,0,0,0};
+//int gate[2][2];
+CvPoint gate[2];
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
-bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true;;
+bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true, drawGateEnabled = false;
 std::string cascadePath = "/home/sam/src/opencv-3.1.0/data/haarcascades/haarcascade_frontalface_alt.xml";
+
+typedef struct DebugInfo
+{
+  int NObjects;
+  int side0Cnt;
+  int side1Cnt;
+} DebugInfo;
 
 void Init(int argc, char *argv[]);
 void* Run(void*);
 void HandleInput(int interval = 1);
 void MouseHandler(int event, int x, int y, int flags, void* param);
 void FromRGB(Matrix& maRed, Matrix& maGreen, Matrix& maBlue);
+void drawMouseBox();
+void writeDebug(DebugInfo dbgInfo);
+void drawGate();
 
 int main(int argc, char *argv[])
 {
@@ -108,6 +121,7 @@ void* Run(void*)
 {
   int size = ivWidth*ivHeight;
   int count = 1;
+  DebugInfo dbgInfo;
   cv::CascadeClassifier cascade;
   std::vector<cv::Rect> detectedFaces;
   std::vector<ObjectBox> trackBoxes;
@@ -172,6 +186,11 @@ void* Run(void*)
       mouseMode = MOUSE_MODE_IDLE;
     }
 
+    if(mouseMode == MOUSE_MODE_ADD_GATE){
+      p.addGate(gate);
+      mouseMode = MOUSE_MODE_IDLE;
+    }
+
     if(((count%20)==0) && cascadeDetect)
     {
       cv::Mat matImg = cv::Mat(frame);
@@ -199,6 +218,12 @@ void* Run(void*)
     HandleInput();
     p.getDebugImage(img, maRed, maGreen, maBlue, drawMode);
     FromRGB(maRed, maGreen, maBlue);
+    drawGate();
+    drawMouseBox();
+    dbgInfo.NObjects = p.getObjectTotal();
+    dbgInfo.side0Cnt = p.getSide0Cnt();
+    dbgInfo.side1Cnt = p.getSide1Cnt();
+    writeDebug(dbgInfo);
     cvShowImage("MOCTLD", curImage);
     p.enableLearning(learningEnabled);
     if(save){
@@ -222,7 +247,8 @@ void HandleInput(int interval)
       case 't': drawMode ^= DEBUG_DRAW_CROSSES;  break;
       case 'p': drawMode ^= DEBUG_DRAW_PATCHES;  break;
       case 'h': drawMode ^= DEBUG_DRAW_PATH;  break;
-      case 'c': cascadeDetect = true;  break;
+      case 'c': cascadeDetect = !cascadeDetect;  break;
+      case 'g': drawGateEnabled = true; break;
       case 'l':
         learningEnabled = !learningEnabled;
         std::cout << "learning " << (learningEnabled? "en" : "dis") << "abled" << std::endl;
@@ -240,39 +266,70 @@ void HandleInput(int interval)
 
 void MouseHandler(int event, int x, int y, int flags, void* param)
 {
-  switch(event){
-    case CV_EVENT_LBUTTONDOWN:
-      mouseBox.x = x;
-      mouseBox.y = y;
-      mouseBox.width = mouseBox.height = 0;
-      mouseMode = MOUSE_MODE_MARKER;
-      break;
-    case CV_EVENT_MOUSEMOVE:
-      if(mouseMode == MOUSE_MODE_MARKER){
-        mouseBox.width = x - mouseBox.x;
-        mouseBox.height = y - mouseBox.y;
-      }
-      break;
-    case CV_EVENT_LBUTTONUP:
-      if(mouseMode != MOUSE_MODE_MARKER)
+  if(drawGateEnabled)
+  {
+    switch(event){
+      case CV_EVENT_LBUTTONDOWN:
+        gate[0].x = x;
+        gate[0].y = y;
+        //gate[0][0] = x;
+        //gate[0][1] = y;
+        mouseMode = MOUSE_MODE_MARKER;
         break;
-      if(mouseBox.width < 0){
-        mouseBox.x += mouseBox.width;
-        mouseBox.width *= -1;
-      }
-      if(mouseBox.height < 0){
-        mouseBox.y += mouseBox.height;
-        mouseBox.height *= -1;
-      }
-      if(mouseBox.width < 4 || mouseBox.height < 4){
-        std::cout << "bounding box too small!" << std::endl;
+      case CV_EVENT_MOUSEMOVE:
+        if(mouseMode == MOUSE_MODE_MARKER){
+          gate[1].x = x;
+          gate[1].y = y;
+          //gate[1][0] = x;
+          //gate[1][1] = y;
+        }
+        break;
+      case CV_EVENT_LBUTTONUP:
+        if(mouseMode != MOUSE_MODE_MARKER)
+          break;
+        mouseMode = MOUSE_MODE_ADD_GATE;
+        break;
+      case CV_EVENT_RBUTTONDOWN:
         mouseMode = MOUSE_MODE_IDLE;
-      }else
-        mouseMode = MOUSE_MODE_ADD_BOX;
-      break;
-    case CV_EVENT_RBUTTONDOWN:
-      mouseMode = MOUSE_MODE_IDLE;
-      break;
+        break;
+    }
+  }
+  else
+  {
+    switch(event){
+      case CV_EVENT_LBUTTONDOWN:
+        mouseBox.x = x;
+        mouseBox.y = y;
+        mouseBox.width = mouseBox.height = 0;
+        mouseMode = MOUSE_MODE_MARKER;
+        break;
+      case CV_EVENT_MOUSEMOVE:
+        if(mouseMode == MOUSE_MODE_MARKER){
+          mouseBox.width = x - mouseBox.x;
+          mouseBox.height = y - mouseBox.y;
+        }
+        break;
+      case CV_EVENT_LBUTTONUP:
+        if(mouseMode != MOUSE_MODE_MARKER)
+          break;
+        if(mouseBox.width < 0){
+          mouseBox.x += mouseBox.width;
+          mouseBox.width *= -1;
+        }
+        if(mouseBox.height < 0){
+          mouseBox.y += mouseBox.height;
+          mouseBox.height *= -1;
+        }
+        if(mouseBox.width < 4 || mouseBox.height < 4){
+          std::cout << "bounding box too small!" << std::endl;
+          mouseMode = MOUSE_MODE_IDLE;
+        }else
+          mouseMode = MOUSE_MODE_ADD_BOX;
+        break;
+      case CV_EVENT_RBUTTONDOWN:
+        mouseMode = MOUSE_MODE_IDLE;
+        break;
+    }
   }
 }
 
@@ -283,12 +340,42 @@ void FromRGB(Matrix& maRed, Matrix& maGreen, Matrix& maBlue)
     curImage->imageData[3*i+1] = maGreen.data()[i];
     curImage->imageData[3*i+0] = maBlue.data()[i];
   }
+
   //at this place you could save the images using
   //cvSaveImage(filename, curImage);
+}
+
+void drawGate()
+{
+  if(drawGateEnabled)
+  {
+    cvLine(curImage,gate[0],gate[1],CV_RGB(0,0,255));
+  }
+}
+
+void writeDebug(DebugInfo dbgInfo)
+{
+  char strSide0[25];
+  char strSide1[25];
+  char strNObj[25];
+  CvPoint midPt;
+  CvFont font;
+  sprintf(strSide0, "Side0: %i", dbgInfo.side0Cnt);
+  sprintf(strSide1, "Side1: %i", dbgInfo.side1Cnt);
+  sprintf(strNObj, "#objects: %i", dbgInfo.NObjects);
+
+  cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 0.5, 0.5, 0, 1);
+  cvPutText(curImage, strSide0, cvPoint(0, ivHeight/10), &font, cvScalar(0));
+  cvPutText(curImage, strSide1, cvPoint(ivWidth-ivHeight/3, ivHeight/10), &font, cvScalar(0));
+  cvPutText(curImage, strNObj, cvPoint(ivWidth-3*ivHeight/4, ivHeight-ivHeight/4), &font, cvScalar(0));
+}
+
+void drawMouseBox()
+{
   if(mouseMode == MOUSE_MODE_MARKER)
   {
     CvPoint pt1; pt1.x = mouseBox.x; pt1.y = mouseBox.y;
-    CvPoint pt2; pt2.x = mouseBox.x + mouseBox.width; pt2.y = mouseBox.y + mouseBox.height;  
+    CvPoint pt2; pt2.x = mouseBox.x + mouseBox.width; pt2.y = mouseBox.y + mouseBox.height;
     cvRectangle(curImage, pt1, pt2, CV_RGB(0,0,255));
   }
 }

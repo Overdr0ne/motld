@@ -44,6 +44,7 @@
 #define DEBUG_DRAW_PATCHES 2
 #define DEBUG_DRAW_CROSSES 4
 #define DEBUG_DRAW_PATH 8
+//#define DEBUG_DRAW_GATE 16
 
 #define ENABLE_CLUSTERING 1
 
@@ -98,11 +99,11 @@ public:
   MultiObjectTLD(const int width, const int height, const MOTLDSettings& settings = MOTLDSettings())
        : ivWidth(width), ivHeight(height), 
          ivColorMode(settings.colorMode), ivPatchSize(settings.patchSize), ivBBmin(settings.bbMin), 
-         ivUseColor(settings.useColor && ivColorMode == COLOR_MODE_RGB), 
+         ivSide0Cnt(0),ivSide1Cnt(0),ivSide(0),ivUseColor(settings.useColor && ivColorMode == COLOR_MODE_RGB), 
          ivEnableFastRotation(settings.enableFastRotation), ivLKTracker(LKTracker(width, height)), 
          ivNNClassifier(NNClassifier(width, height, ivPatchSize, ivUseColor, settings.allowFastChange)), 
          ivFernFilter(FernFilter(width, height, settings.numFerns, settings.featuresPerFern)),
-         ivNObjects(0), ivLearningEnabled(true), ivNLastDetections(0) { };
+         ivNObjects(0), ivGateEnabled(false), ivLearningEnabled(true), ivNLastDetections(0) { };
 
   /** @brief Marks a new object in the previously passed frame. 
    * @note To add multiple objects in a single frame please prefer addObjects().
@@ -140,9 +141,11 @@ public:
   /// False if input center overlaps any current objects
   bool isNewObject(ObjectBox inBox);
   /// set gate threshold
-  void setGateThreshold(std::array<int,2> inThreshold);
-  /// adds the new current position to a path buffer for each object
-  //void trackPaths();
+  void addGate(CvPoint inGate[2]) { ivGate[0] = inGate[0]; ivGate[1] = inGate[1]; ivGateEnabled=true; }
+  int getObjectTotal() { return ivNObjects;}
+  int getSide0Cnt() { return ivSide0Cnt;}
+  int getSide1Cnt() { return ivSide1Cnt;}
+
   /** @brief Saves an output image to file in PPM format.
    * @param src the same as passed to processFrame()
    * @param filename the filename, suggested ending: ".ppm"
@@ -172,7 +175,8 @@ private:
   int ivColorMode;
   int ivPatchSize;
   int ivBBmin;
-  int ivGateCount;
+  int ivSide0Cnt,ivSide1Cnt;
+  int ivSide;
   bool ivUseColor;
   bool ivEnableFastRotation;
   LKTracker ivLKTracker;
@@ -185,8 +189,10 @@ private:
   std::vector<bool> ivDefined;
   std::vector<bool> ivValid;
   std::vector<NNPatch> ivCurrentPatches;
-  std::array<int,2> ivGateThreshold;
+  CvPoint ivGate[2];
+  bool ivGateEnabled;
   bool ivLearningEnabled;
+  void countGateCrossings();
   
   Matrix ivCurImage;
   unsigned char * ivCurImagePtr;
@@ -293,11 +299,45 @@ bool MultiObjectTLD::isNewObject(ObjectBox inBox)
   return true;
 }
 
+void MultiObjectTLD::countGateCrossings()
+{
+  int lhsNow, rhsNow, lhsPast, rhsPast;
+  int PREV_FRAMES = 5;
+  int prevIndex;
+
+  for( std::vector<ObjectBox>::const_iterator r = ivCurrentBoxes.begin(); r != ivCurrentBoxes.end(); r++ )
+  {
+    if(r->path.size() > 0)
+    {
+      lhsNow = r->y;
+      rhsNow = (ivGate[0].y-ivGate[1].y)/(ivGate[0].x-ivGate[1].x)*(r->x-ivGate[1].x) + ivGate[1].y;
+      if((prevIndex = (r->path.size()-1 - PREV_FRAMES)) < 0)
+        prevIndex=0;
+      lhsPast = r->path[prevIndex].y;
+      rhsPast = (ivGate[0].y-ivGate[1].y)/(ivGate[0].x-ivGate[1].x)*(r->path[prevIndex].x-ivGate[1].x) + ivGate[1].y;
+
+      if((lhsNow>=rhsNow) && (lhsPast>=rhsPast))
+      {
+        if(ivSide==1)
+          ivSide0Cnt++;
+        ivSide = 0;
+      }
+      if((lhsNow<=rhsNow) && (lhsPast<=rhsPast))
+      {
+        if(ivSide==0)
+          ivSide1Cnt++;
+        ivSide = 1;
+      }
+    }
+  }
+  std::cout << "Side: " << ivSide << " Side0: " << ivSide0Cnt << " Side1: " << ivSide1Cnt << std::endl;
+}
+
 void MultiObjectTLD::processFrame(unsigned char * img)
 {
   ivCurImagePtr = img;
   ivCurImage = Matrix(ivWidth, ivHeight);
-  std::array<int,2> midPt;
+  CvPoint midPt;
   /*Matrix curImageR;
   Matrix curImageG;
   Matrix curImageB;*/
@@ -467,8 +507,8 @@ void MultiObjectTLD::processFrame(unsigned char * img)
           ivCurrentBoxes[o].y = tmpy / tmpn;
           ivCurrentBoxes[o].width = tmpw / tmpn;
           ivCurrentBoxes[o].height = tmph / tmpn;
-          midPt[0] = ivCurrentBoxes[o].x + (ivCurrentBoxes[o].width/2);
-          midPt[1] = ivCurrentBoxes[o].y + (ivCurrentBoxes[o].height/2);
+          midPt.x = ivCurrentBoxes[o].x + (ivCurrentBoxes[o].width/2);
+          midPt.y = ivCurrentBoxes[o].y + (ivCurrentBoxes[o].height/2);
           ivCurrentBoxes[o].path.push_back(midPt);
           ivCurrentPatches[o] = NNPatch(ivCurrentBoxes[o], ivCurImage, ivPatchSize,
                                   ivUseColor ? img : NULL, ivWidth, ivHeight);
@@ -493,7 +533,10 @@ void MultiObjectTLD::processFrame(unsigned char * img)
   t_nn = t_end - t_start;
   t_start = t_end;
   #endif
-  
+
+  if(ivGateEnabled)
+    countGateCrossings();
+
   // LEARNER
   if (ivEnableFastRotation)
     ivNNClassifier.removeWarps();
@@ -685,7 +728,7 @@ void MultiObjectTLD::writeDebugImage(unsigned char * src, char* filename, int mo
 void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gMat, Matrix& bMat, int mode) const
 {
   int size = ivHeight * ivWidth;
-  std::array<int,2> prevPt;
+  CvPoint prevPt;
   int count;
   int STABILIZE_CNT = 5;
   rMat.setSize(ivWidth, ivHeight); 
@@ -700,10 +743,10 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
     for( std::vector<ObjectBox>::const_iterator boxi = ivCurrentBoxes.begin(); boxi != ivCurrentBoxes.end(); boxi++ )
     {
       count = 0;
-      for( std::vector<std::array<int,2>>::const_iterator pti = boxi->path.begin(); pti != boxi->path.end(); pti++ )
+      for( std::vector<CvPoint>::const_iterator pti = boxi->path.begin(); pti != boxi->path.end(); pti++ )
       {
         if(count > STABILIZE_CNT)
-          rMat.drawLine(prevPt[0],prevPt[1],(*pti)[0],(*pti)[1],200);
+          rMat.drawLine(prevPt.x,prevPt.y,(*pti).x,(*pti).y,255);
           //printf("[%i,%i] ",(*pti)[0],(*pti)[1]);
         else
           count++;
@@ -711,6 +754,11 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
       }
     }
   }
+
+  //if (mode & DEBUG_DRAW_GATE)
+  //{
+    //rMat.drawLine(ivGate[0][0],ivGate[0][1],ivGate[1][0],ivGate[1][1],255);
+  //}
 
   if (mode & DEBUG_DRAW_DETECTIONS)
   {
