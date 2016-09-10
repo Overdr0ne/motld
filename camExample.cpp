@@ -35,8 +35,8 @@ There are some keys to customize which components are displayed:
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "cv.h"
-#include "highgui.h"
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 #include "motld/MultiObjectTLD.h"
 
@@ -52,13 +52,15 @@ There are some keys to customize which components are displayed:
 #define MOUSE_MODE_ADD_BOX 1
 #define MOUSE_MODE_IDLE 2
 #define MOUSE_MODE_ADD_GATE 4
-IplImage* curImage = NULL;
+
+// #define _GLIBCXX_USE_CXX11_ABI 0
+
+cv::Mat curImage;
 bool ivQuit = false;
 int ivWidth, ivHeight;
-CvCapture* capture;
 ObjectBox mouseBox = {0,0,0,0,0};
 //int gate[2][2];
-CvPoint gate[2];
+cv::Point gate[2];
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
 bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true, drawGateEnabled = false;
@@ -71,53 +73,46 @@ typedef struct DebugInfo
   int side1Cnt;
 } DebugInfo;
 
-void Init(int argc, char *argv[]);
-void* Run(void*);
+void Init(cv::VideoCapture& capture);
+void* Run(cv::VideoCapture& capture);
 void HandleInput(int interval = 1);
 void MouseHandler(int event, int x, int y, int flags, void* param);
-void FromRGB(Matrix& maRed, Matrix& maGreen, Matrix& maBlue);
+void BGR2RGB(Matrix& maRed, Matrix& maGreen, Matrix& maBlue);
 void drawMouseBox();
 void writeDebug(DebugInfo dbgInfo);
 void drawGate();
 
 int main(int argc, char *argv[])
 {
-  Init(argc, argv);
-  Run(0);
-  cvDestroyAllWindows();
+  cv::VideoCapture capture(0);
+
+  Init(capture);
+  Run(capture);
+  cv::destroyAllWindows();
   return 0;
 }
 
 
-void Init(int argc, char *argv[])
+void Init(cv::VideoCapture& capture)
 {
-  capture = cvCaptureFromCAM(CV_CAP_ANY);
-  if(!capture){
+  if(!capture.isOpened()){
     std::cout << "error starting video capture" << std::endl;
     exit(0);
   }
   //propose a resolution
-  cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, 640);
-  cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, 480);
+  capture.set(CV_CAP_PROP_FRAME_WIDTH, RESOLUTION_X);
+  capture.set(CV_CAP_PROP_FRAME_HEIGHT, RESOLUTION_Y);
   //get the actual (supported) resolution
-  ivWidth = cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH);
-  ivHeight = cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT);
+  ivWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
+  ivHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
   std::cout << "camera/video resolution: " << ivWidth << "x" << ivHeight << std::endl;
-  #ifdef FORCE_RESIZING
-  ivWidth = RESOLUTION_X;
-  ivHeight = RESOLUTION_Y;
-  #endif
 
-  cvNamedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
-
-  CvSize wsize = {ivWidth, ivHeight};
-  curImage = cvCreateImage(wsize, IPL_DEPTH_8U, 3);
-
-  cvResizeWindow("MOCTLD", ivWidth, ivHeight);
-  cvSetMouseCallback("MOCTLD", MouseHandler);
+  cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
+  // cv::resizeWindow("MOCTLD", ivWidth, ivHeight);
+  cv::setMouseCallback("MOCTLD", MouseHandler);
 }
 
-void* Run(void*)
+void* Run(cv::VideoCapture& capture)
 {
   int size = ivWidth*ivHeight;
   int count = 1;
@@ -143,10 +138,6 @@ void* Run(void*)
   Matrix maGreen;
   Matrix maBlue;
   unsigned char img[size*3];
-  #ifdef FORCE_RESIZING
-  CvSize wsize = {ivWidth, ivHeight};
-  IplImage* frame = cvCreateImage(wsize, IPL_DEPTH_8U, 3);
-  #endif
   while(!ivQuit)
   {
     /*
@@ -161,21 +152,35 @@ void* Run(void*)
     */
 
     // Grab an image
-    if(!cvGrabFrame(capture)){
+    if(!capture.grab()){
       std::cout << "error grabbing frame" << std::endl;
       break;
     }
-    #ifdef FORCE_RESIZING
-    IplImage* capframe = cvRetrieveFrame(capture);
-    cvResize(capframe, frame);
-    #else
-    IplImage* frame = cvRetrieveFrame(capture);
-    #endif
-    for(int j = 0; j<size; j++){
-      img[j] = frame->imageData[j*3+2];
-      img[j+size] = frame->imageData[j*3+1];
-      img[j+2*size] = frame->imageData[j*3];
+    cv::Mat frame;
+    capture.retrieve(frame);
+    frame.copyTo(curImage);
+    //BGR to RGB
+    // for(int j = 0; j<size; j++){
+    //   img[j] = frame.at<cv::Vec3b>(j).val[2];
+    //   img[j+size] = frame.at<cv::Vec3b>(j).val[1];
+    //   img[j+2*size] = frame.at<cv::Vec3b>(j).val[0];
+    // }
+    for(int i = 0; i < ivHeight; ++i){
+      for(int j = 0; j < ivWidth; ++j){
+        img[i*ivWidth+j] = curImage.at<cv::Vec3b>(i,j).val[2];
+        img[i*ivWidth+j+size] = curImage.at<cv::Vec3b>(i,j).val[1];
+        img[i*ivWidth+j+2*size] = curImage.at<cv::Vec3b>(i,j).val[0];
+      }
     }
+
+    // for(int i = 0; i < ivHeight; ++i){
+    //   for(int j = 0; j < ivWidth; ++j){
+    //     curImage.at<cv::Vec3b>(i,j).val[2] = 0;
+    //     curImage.at<cv::Vec3b>(i,j).val[1] = 0;
+    //     curImage.at<cv::Vec3b>(i,j).val[0] = 0;
+    //   }
+    // }
+    // cv::imshow("MOCTLD", curImage);
 
     // Process it with motld
     p.processFrame(img);
@@ -193,8 +198,7 @@ void* Run(void*)
 
     if(((count%20)==0) && cascadeDetect)
     {
-      cv::Mat matImg = cv::Mat(frame);
-      cascade.detectMultiScale( matImg, detectedFaces,
+      cascade.detectMultiScale( frame, detectedFaces,
         1.1, 2, 0
         //|CASCADE_FIND_BIGGEST_OBJECT
         //|CASCADE_DO_ROUGH_SEARCH
@@ -217,14 +221,14 @@ void* Run(void*)
     // Display result
     HandleInput();
     p.getDebugImage(img, maRed, maGreen, maBlue, drawMode);
-    FromRGB(maRed, maGreen, maBlue);
+    BGR2RGB(maRed, maGreen, maBlue);
     drawGate();
     drawMouseBox();
     dbgInfo.NObjects = p.getObjectTotal();
     dbgInfo.side0Cnt = p.getSide0Cnt();
     dbgInfo.side1Cnt = p.getSide1Cnt();
     writeDebug(dbgInfo);
-    cvShowImage("MOCTLD", curImage);
+    cv::imshow("MOCTLD", curImage);
     p.enableLearning(learningEnabled);
     if(save){
       p.saveClassifier((char*)CLASSIFIERFILENAME);
@@ -232,7 +236,7 @@ void* Run(void*)
     }
   }
   //delete[] img;
-  cvReleaseCapture(&capture);
+  capture.release();
   return 0;
 }
 
@@ -333,12 +337,14 @@ void MouseHandler(int event, int x, int y, int flags, void* param)
   }
 }
 
-void FromRGB(Matrix& maRed, Matrix& maGreen, Matrix& maBlue)
+void BGR2RGB(Matrix& maRed, Matrix& maGreen, Matrix& maBlue)
 {
-  for(int i = 0; i < ivWidth*ivHeight; ++i){
-    curImage->imageData[3*i+2] = maRed.data()[i];
-    curImage->imageData[3*i+1] = maGreen.data()[i];
-    curImage->imageData[3*i+0] = maBlue.data()[i];
+  for(int i = 0; i < ivHeight; ++i){
+    for(int j = 0; j < ivWidth; ++j){
+      curImage.at<cv::Vec3b>(i,j).val[2] = maRed.data()[i*ivWidth+j];
+      curImage.at<cv::Vec3b>(i,j).val[1] = maGreen.data()[i*ivWidth+j];
+      curImage.at<cv::Vec3b>(i,j).val[0] = maBlue.data()[i*ivWidth+j];
+    }
   }
 
   //at this place you could save the images using
@@ -349,7 +355,7 @@ void drawGate()
 {
   if(drawGateEnabled)
   {
-    cvLine(curImage,gate[0],gate[1],CV_RGB(0,0,255));
+    cv::line(curImage,gate[0],gate[1],cv::Scalar(0,0,255));
   }
 }
 
@@ -358,24 +364,22 @@ void writeDebug(DebugInfo dbgInfo)
   char strSide0[25];
   char strSide1[25];
   char strNObj[25];
-  CvPoint midPt;
-  CvFont font;
+  cv::Point midPt;
   sprintf(strSide0, "Side0: %i", dbgInfo.side0Cnt);
   sprintf(strSide1, "Side1: %i", dbgInfo.side1Cnt);
   sprintf(strNObj, "#objects: %i", dbgInfo.NObjects);
 
-  cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 0.5, 0.5, 0, 1);
-  cvPutText(curImage, strSide0, cvPoint(0, ivHeight/10), &font, cvScalar(0));
-  cvPutText(curImage, strSide1, cvPoint(ivWidth-ivHeight/3, ivHeight/10), &font, cvScalar(0));
-  cvPutText(curImage, strNObj, cvPoint(ivWidth-3*ivHeight/4, ivHeight-ivHeight/4), &font, cvScalar(0));
+  cv::putText(curImage, strSide0, cv::Point(0, ivHeight/10), CV_FONT_HERSHEY_SIMPLEX, 0.5, 0);
+  cv::putText(curImage, strSide1, cv::Point(ivWidth-ivHeight/3, ivHeight/10), CV_FONT_HERSHEY_SIMPLEX, 0.5, 0);
+  cv::putText(curImage, strNObj, cv::Point(ivWidth-3*ivHeight/4, ivHeight-ivHeight/4), CV_FONT_HERSHEY_SIMPLEX, 0.5, 0);
 }
 
 void drawMouseBox()
 {
   if(mouseMode == MOUSE_MODE_MARKER)
   {
-    CvPoint pt1; pt1.x = mouseBox.x; pt1.y = mouseBox.y;
-    CvPoint pt2; pt2.x = mouseBox.x + mouseBox.width; pt2.y = mouseBox.y + mouseBox.height;
-    cvRectangle(curImage, pt1, pt2, CV_RGB(0,0,255));
+    cv::Point pt1; pt1.x = mouseBox.x; pt1.y = mouseBox.y;
+    cv::Point pt2; pt2.x = mouseBox.x + mouseBox.width; pt2.y = mouseBox.y + mouseBox.height;
+    cv::rectangle(curImage, pt1, pt2, CV_RGB(0,0,255));
   }
 }

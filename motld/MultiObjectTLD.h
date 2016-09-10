@@ -22,6 +22,7 @@
 //#define DEBUG 1
 //#define TIMING 1
 
+#include <opencv/cv.hpp>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -141,7 +142,7 @@ public:
   /// False if input center overlaps any current objects
   bool isNewObject(ObjectBox inBox);
   /// set gate threshold
-  void addGate(CvPoint inGate[2]) { ivGate[0] = inGate[0]; ivGate[1] = inGate[1]; ivGateEnabled=true; }
+  void addGate(cv::Point inGate[2]) { ivGate[0] = inGate[0]; ivGate[1] = inGate[1]; ivGateEnabled=true; }
   int getObjectTotal() { return ivNObjects;}
   int getSide0Cnt() { return ivSide0Cnt;}
   int getSide1Cnt() { return ivSide1Cnt;}
