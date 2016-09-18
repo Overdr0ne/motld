@@ -34,6 +34,8 @@ There are some keys to customize which components are displayed:
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <chrono>
+#include <ctime>
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -58,13 +60,23 @@ There are some keys to customize which components are displayed:
 cv::Mat curImage;
 bool ivQuit = false;
 int ivWidth, ivHeight;
-ObjectBox mouseBox = {0,0,0,0,0};
+ObjectBox mouseBox = {0,0,0,0,0,boost::circular_buffer<CvPoint>(CB_LEN)};
 //int gate[2][2];
 cv::Point gate[2];
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
 bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true, drawGateEnabled = false;
 std::string cascadePath = "/home/sam/src/opencv-3.1.0/data/haarcascades/haarcascade_frontalface_alt.xml";
+std::clock_t c_start;
+std::clock_t c_end;
+std::clock_t c_start1;
+std::clock_t c_end1;
+std::clock_t c_start2;
+std::clock_t c_end2;
+std::clock_t c_start3;
+std::clock_t c_end3;
+// auto t_start;
+// auto t_end;
 
 typedef struct DebugInfo
 {
@@ -151,6 +163,14 @@ void* Run(cv::VideoCapture& capture)
     }
     */
 
+#if TIMING
+    c_end = std::clock();
+#endif
+    std::cout << "Total: " << (c_end-c_start) << std::endl;
+#if TIMING
+    c_start = std::clock();
+#endif
+
     // Grab an image
     if(!capture.grab()){
       std::cout << "error grabbing frame" << std::endl;
@@ -165,6 +185,9 @@ void* Run(cv::VideoCapture& capture)
     //   img[j+size] = frame.at<cv::Vec3b>(j).val[1];
     //   img[j+2*size] = frame.at<cv::Vec3b>(j).val[0];
     // }
+#if TIMING
+    c_start1 = std::clock();
+#endif
     for(int i = 0; i < ivHeight; ++i){
       for(int j = 0; j < ivWidth; ++j){
         img[i*ivWidth+j] = curImage.at<cv::Vec3b>(i,j).val[2];
@@ -172,6 +195,10 @@ void* Run(cv::VideoCapture& capture)
         img[i*ivWidth+j+2*size] = curImage.at<cv::Vec3b>(i,j).val[0];
       }
     }
+#if TIMING
+    c_end1 = std::clock();
+    std::cout << "time1: " << (c_end1-c_start1) << std::endl;
+#endif
 
     // for(int i = 0; i < ivHeight; ++i){
     //   for(int j = 0; j < ivWidth; ++j){
@@ -182,8 +209,15 @@ void* Run(cv::VideoCapture& capture)
     // }
     // cv::imshow("MOCTLD", curImage);
 
+#if TIMING
+    c_start2 = std::clock();
+#endif
     // Process it with motld
     p.processFrame(img);
+#if TIMING
+    c_end2 = std::clock();
+    std::cout << "time2: " << (c_end2-c_start2) << std::endl;
+#endif
 
     // Add new box
     if(mouseMode == MOUSE_MODE_ADD_BOX){
@@ -221,7 +255,14 @@ void* Run(cv::VideoCapture& capture)
     // Display result
     HandleInput();
     p.getDebugImage(img, maRed, maGreen, maBlue, drawMode);
+#if TIMING
+    c_start3 = std::clock();
+#endif
     BGR2RGB(maRed, maGreen, maBlue);
+#if TIMING
+    c_end3 = std::clock();
+    std::cout << "time3: " << (c_end3-c_start3) << std::endl;
+#endif
     drawGate();
     drawMouseBox();
     dbgInfo.NObjects = p.getObjectTotal();

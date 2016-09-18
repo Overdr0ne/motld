@@ -20,7 +20,6 @@
 #define MULTIOBJECTTLD_H
 
 //#define DEBUG 1
-//#define TIMING 1
 
 #include <opencv/cv.hpp>
 #include <iostream>
@@ -48,6 +47,8 @@
 //#define DEBUG_DRAW_GATE 16
 
 #define ENABLE_CLUSTERING 1
+
+const int STABILIZE_CNT = 5;
 
 /// Settings-structure that may be passed to the constructor of MultiObjectTLD
 struct MOTLDSettings
@@ -730,8 +731,9 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
 {
   int size = ivHeight * ivWidth;
   CvPoint prevPt;
+  prevPt.x=0;
+  prevPt.y=0;
   int count;
-  int STABILIZE_CNT = 5;
   rMat.setSize(ivWidth, ivHeight); 
   rMat.copyFromCharArray(src);
   gMat.setSize(ivWidth, ivHeight); 
@@ -743,8 +745,9 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
   {
     for( std::vector<ObjectBox>::const_iterator boxi = ivCurrentBoxes.begin(); boxi != ivCurrentBoxes.end(); boxi++ )
     {
+      std::cout << "CB size: " << boxi->path.size() << std::endl;
       count = 0;
-      for( std::vector<CvPoint>::const_iterator pti = boxi->path.begin(); pti != boxi->path.end(); pti++ )
+      for( boost::circular_buffer<CvPoint>::const_iterator pti = boxi->path.begin(); pti != boxi->path.end(); pti++ )
       {
         if(count > STABILIZE_CNT)
           rMat.drawLine(prevPt.x,prevPt.y,(*pti).x,(*pti).y,255);

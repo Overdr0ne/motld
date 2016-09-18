@@ -23,6 +23,7 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include <boost/circular_buffer.hpp>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,6 +56,8 @@
 #define MAX(a,b) (a > b ? a : b)
 #endif
 
+const int CB_LEN = 100;
+
 /// datastructure linking objects to their (possible) location
 struct ObjectBox
 {
@@ -68,7 +71,7 @@ struct ObjectBox
   float height;
   /// identifies object, which is represented by ObjectBox
   int objectId;
-  std::vector<CvPoint> path;
+  boost::circular_buffer<CvPoint> path;
 };
 
 /// datastructure for images (greyscale or single color)
