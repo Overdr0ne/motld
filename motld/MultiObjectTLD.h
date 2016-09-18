@@ -1,17 +1,17 @@
 /* Copyright (C) 2012 Christian Lutz, Thorsten Engesser
- * 
+ *
  * This file is part of motld
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -63,7 +63,7 @@ struct MOTLDSettings
   /// number of features (= tree depth) (default: 10)
   int featuresPerFern;
   /// sliding window scales = 1.2^n for n in {scaleMin, ... scaleMax} (default: -10, 11)
-  int scaleMin, scaleMax; 
+  int scaleMin, scaleMax;
   /// minimum width/height for sliding window (default 24)
   int bbMin;
   /// uses color histograms to extend the confidence measure of NNClassifier (experimental!)
@@ -77,7 +77,7 @@ struct MOTLDSettings
   MOTLDSettings(int cm = COLOR_MODE_GRAY)
   {
     colorMode = cm;
-    patchSize = 15;  
+    patchSize = 15;
     numFerns = 8;
     featuresPerFern = 10;
     scaleMin = -10;
@@ -97,29 +97,29 @@ public:
    * @param width width...
    * @param height ...and height of the images in the sequence
    * @param settings configuration structure (see class MOTLDSettings for more details)
-   */  
+   */
   MultiObjectTLD(const int width, const int height, const MOTLDSettings& settings = MOTLDSettings())
-       : ivWidth(width), ivHeight(height), 
-         ivColorMode(settings.colorMode), ivPatchSize(settings.patchSize), ivBBmin(settings.bbMin), 
-         ivSide0Cnt(0),ivSide1Cnt(0),ivSide(0),ivUseColor(settings.useColor && ivColorMode == COLOR_MODE_RGB), 
-         ivEnableFastRotation(settings.enableFastRotation), ivLKTracker(LKTracker(width, height)), 
-         ivNNClassifier(NNClassifier(width, height, ivPatchSize, ivUseColor, settings.allowFastChange)), 
+       : ivWidth(width), ivHeight(height),
+         ivColorMode(settings.colorMode), ivPatchSize(settings.patchSize), ivBBmin(settings.bbMin),
+         ivSide0Cnt(0),ivSide1Cnt(0),ivSide(0),ivUseColor(settings.useColor && ivColorMode == COLOR_MODE_RGB),
+         ivEnableFastRotation(settings.enableFastRotation), ivLKTracker(LKTracker(width, height)),
+         ivNNClassifier(NNClassifier(width, height, ivPatchSize, ivUseColor, settings.allowFastChange)),
          ivFernFilter(FernFilter(width, height, settings.numFerns, settings.featuresPerFern)),
          ivNObjects(0), ivGateEnabled(false), ivLearningEnabled(true), ivNLastDetections(0) { };
 
-  /** @brief Marks a new object in the previously passed frame. 
+  /** @brief Marks a new object in the previously passed frame.
    * @note To add multiple objects in a single frame please prefer addObjects().
    */
   void addObject(ObjectBox b);
-  /** @brief Adds multiple objects in the previously passed frame. 
-   * @note For efficiency reasons all object boxes need to have the same aspect ratio. All 
-   *  further boxes are automatically reshaped to the aspect ratio of the first object box 
+  /** @brief Adds multiple objects in the previously passed frame.
+   * @note For efficiency reasons all object boxes need to have the same aspect ratio. All
+   *  further boxes are automatically reshaped to the aspect ratio of the first object box
    *  while preserving the area.
    */
   void addObjects(std::vector<ObjectBox> obs);
   /** @brief Processes the current frame (tracking - detecting - learning)
    * @param img The image passed as an unsigned char array. The pixels are assumed to be given
-   *  row by row from top left to bottom right with the image width and height passed to the 
+   *  row by row from top left to bottom right with the image width and height passed to the
    *  constructor (see MultiObjectTLD()). In case of COLOR_MODE_RGB the array should have the form
    *  [r_0, r_1, ..., r_n,  g_0, g_1, ..., g_n,  b_0, b_1, ..., b_n].
    */
@@ -132,7 +132,7 @@ public:
    *  @li @c STATUS_UNSURE: the object may be lost, but is still tracked
    *  @li @c STATUS_LOST: the object is definitely lost (the corresponding box returned by
    *    getObjectBoxes() is invalid)
-   */ 
+   */
   int getStatus(const int objId = 0) const;
   /// Returns if the first object is valid (equivalent to @c getStatus(0) returning @c STATUS_OK)
   bool getValid() const { return ivNObjects > 0 ? ivValid[0] : false; };
@@ -156,20 +156,20 @@ public:
    * @details The patches on the left side represent negative examples, positive examples are on
    *  the right side, starting a new column for each object. The red bars next to the patches
    *  sketch the corresponding color histograms.
-   *  Green boxes represent detections shortlisted by the filtering process (see FernFilter). 
-   *  Blue boxes represent cluster means (if enabled). 
+   *  Green boxes represent detections shortlisted by the filtering process (see FernFilter).
+   *  Blue boxes represent cluster means (if enabled).
    *  Blue crosses represent tracking points that are considered as inliers (see LKTracker).
    *  A red box stands for STATUS_OK, a yellow box means STATUS_UNSURE (cf. getStatus()).
    */
   void writeDebugImage(unsigned char * src, char * filename, int mode = 255) const;
   /// Writes a colored debug image into the given rgb matrices. Details see writeDebugImage().
   void getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gMat, Matrix& bMat, int mode = 255) const;
-  
+
   /// Returns an instance of MultiObjectTLD while loading the classifier from file.
   static MultiObjectTLD loadClassifier(const char * filename);
   /// Saves the classifier to a (binary) file.
   void saveClassifier(const char * filename) const;
-  
+
 private:
   int ivWidth;
   int ivHeight;
@@ -195,16 +195,16 @@ private:
   bool ivGateEnabled;
   bool ivLearningEnabled;
   void countGateCrossings();
-  
+
   Matrix ivCurImage;
   unsigned char * ivCurImagePtr;
   std::vector<FernDetection> ivLastDetections;
   std::vector<FernDetection> ivLastDetectionClusters;
   int ivNLastDetections;
   void clusterDetections(float threshold);
-  
+
   MultiObjectTLD (int width, int height, int colorMode, int patchSize, int bbMin, bool useColor,
-                  bool fastRotation, NNClassifier nnc, FernFilter ff, int nObjects, 
+                  bool fastRotation, NNClassifier nnc, FernFilter ff, int nObjects,
                   float aspectRatio, bool learningEnabled);
 };
 
@@ -221,7 +221,7 @@ void MultiObjectTLD::addObject(ObjectBox b)
 
 void MultiObjectTLD::addObjects(std::vector<ObjectBox> obs)
 {
-  int n = obs.size(); 
+  int n = obs.size();
   if (n == 0)
     return;
   for (int i = 0; i < n; i++)
@@ -241,9 +241,9 @@ void MultiObjectTLD::addObjects(std::vector<ObjectBox> obs)
   }
 
   if (ivNObjects == 0)
-  { 
+  {
     if (ivCurImage.size() == 0)
-    { 
+    {
       std::cerr << "Please insert an image via processFrame() before adding objects!" << std::endl;
       return;
     }
@@ -254,15 +254,15 @@ void MultiObjectTLD::addObjects(std::vector<ObjectBox> obs)
     {
       NNPatch p(initNegPatches[i]);
       ivNNClassifier.trainNN(p, -1, false);
-    }  
+    }
     #if TIMING
     std::ofstream t_file("runtime.txt");
     t_file << "tracker\tdetector\tnn\tlearner\tsum";
     t_file.close();
     #endif
-  }else 
+  }else
     ivFernFilter.addObjects(ivCurImage, obs);
-  
+
   for (int i = 0; i < n; i++)
   {
     ivCurrentBoxes.push_back(obs[i]);
@@ -369,11 +369,11 @@ void MultiObjectTLD::processFrame(unsigned char * img)
   #if TIMING
   t_end = getTime(); t_tracker = t_end - t_start;
   #endif
-  #if DEBUG 
+  #if DEBUG
   #if TIMING
   std::cout << "\tneeded " << t_tracker;
   #endif
-  std::cout << "ms\ttConf = {";    
+  std::cout << "ms\ttConf = {";
   #endif
   std::vector<float> tConf;
   for (int o = 0; o < ivNObjects; o++)
@@ -397,8 +397,8 @@ void MultiObjectTLD::processFrame(unsigned char * img)
   #endif
   #if TIMING
   t_start = getTime();
-  #endif 
-  
+  #endif
+
   // DETECTOR
   ivLastDetections = ivFernFilter.scanPatch(ivCurImage);
   #if TIMING
@@ -413,7 +413,7 @@ void MultiObjectTLD::processFrame(unsigned char * img)
     for (int i = 0; i < ivNLastDetections; ++i)
     {
       detectionPatches.push_back(new NNPatch(ivLastDetections[i].patch));
-      ivLastDetections[i].confidence = 
+      ivLastDetections[i].confidence =
           ivNNClassifier.getConf(*detectionPatches[i], ivLastDetections[i].box.objectId, false,
                               ivLastDetections[i].box, ivUseColor ? img : NULL, ivWidth, ivHeight);
     }
@@ -425,7 +425,7 @@ void MultiObjectTLD::processFrame(unsigned char * img)
       double bestConf = -1;
       int bestId = -1;
       #if ENABLE_CLUSTERING
-      NNPatch bestCluster;      
+      NNPatch bestCluster;
       for (size_t i = 0; i < ivLastDetectionClusters.size(); ++i)
         if (ivLastDetectionClusters[i].box.objectId == o)
         {
@@ -439,21 +439,21 @@ void MultiObjectTLD::processFrame(unsigned char * img)
             bestCluster = curPatch;
           }
         }
-      if (bestConf > tConf[o] && bestConf > 0.65 && (!ivDefined[o] 
+      if (bestConf > tConf[o] && bestConf > 0.65 && (!ivDefined[o]
               || rectangleOverlap(ivLastDetectionClusters[bestId].box, ivCurrentBoxes[o]) < 0.7))
       {
         //if there is a (better) cluster of detections away from tracker result / and tracker failed
-        ivCurrentBoxes[o] = ivLastDetectionClusters[bestId].box;    
-        ivCurrentPatches[o] = bestCluster;  
-        #if DEBUG  
-        std::cout << "DETECTOR: changed object " << o << " box to (" 
-            << round(ivCurrentBoxes[o].x) << "," << round(ivCurrentBoxes[o].y) << ", " 
-            << round(ivCurrentBoxes[o].width) << "," << round(ivCurrentBoxes[o].height) 
+        ivCurrentBoxes[o] = ivLastDetectionClusters[bestId].box;
+        ivCurrentPatches[o] = bestCluster;
+        #if DEBUG
+        std::cout << "DETECTOR: changed object " << o << " box to ("
+            << round(ivCurrentBoxes[o].x) << "," << round(ivCurrentBoxes[o].y) << ", "
+            << round(ivCurrentBoxes[o].width) << "," << round(ivCurrentBoxes[o].height)
             << ") with conf=" << bestConf << std::endl;
         #endif
         ivDefined[o] = true;
         if (bestConf > 0.65)
-          ivValid[o] = true;      
+          ivValid[o] = true;
       }
       #else //no clustering, process detections directly
       for (unsigned int i = 0; i < ivLastDetections.size(); ++i)
@@ -462,28 +462,28 @@ void MultiObjectTLD::processFrame(unsigned char * img)
           bestConf = ivLastDetections[i].confidence;
           bestId = i;
         }
-      if (bestConf > tConf[o] && bestConf > 0.7 && (!ivDefined[o] 
+      if (bestConf > tConf[o] && bestConf > 0.7 && (!ivDefined[o]
                   || rectangleOverlap(ivLastDetections[bestId].box, ivCurrentBoxes[o]) < 0.9))
       {
         //if there is a (better) detection away from tracker result
-        ivCurrentBoxes[o] = ivLastDetections[bestId].box;    
-        ivCurrentPatches[o] = *detectionPatches[bestId];     
-        #if DEBUG 
-        std::cout << "DETECTOR: changed object " << o << " box to (" 
-            << round(ivCurrentBoxes[o].x) << "," << round(ivCurrentBoxes[o].y) << ", " 
-            << round(ivCurrentBoxes[o].width) << "," << round(ivCurrentBoxes[o].height) 
+        ivCurrentBoxes[o] = ivLastDetections[bestId].box;
+        ivCurrentPatches[o] = *detectionPatches[bestId];
+        #if DEBUG
+        std::cout << "DETECTOR: changed object " << o << " box to ("
+            << round(ivCurrentBoxes[o].x) << "," << round(ivCurrentBoxes[o].y) << ", "
+            << round(ivCurrentBoxes[o].width) << "," << round(ivCurrentBoxes[o].height)
             << ") with conf=" << bestConf << std::endl;
         #endif
         ivDefined[o] = true;
         if (bestConf > 0.65)
-          ivValid[o] = true;      
+          ivValid[o] = true;
       }
       #endif
       else if (ivDefined[o]) // tracker defined
       {
-        //weighted average (10x tracker + close (overlap>0.7) detections)  
+        //weighted average (10x tracker + close (overlap>0.7) detections)
         int tmpn = 10;
-        float tmpx = 10*ivCurrentBoxes[o].x, tmpy = 10*ivCurrentBoxes[o].y, 
+        float tmpx = 10*ivCurrentBoxes[o].x, tmpy = 10*ivCurrentBoxes[o].y,
               tmpw = 10*ivCurrentBoxes[o].width, tmph = 10*ivCurrentBoxes[o].height;
         for (int i = 0; i < ivNLastDetections; ++i)
         {
@@ -514,13 +514,13 @@ void MultiObjectTLD::processFrame(unsigned char * img)
           tConf[o] = ivNNClassifier.getConf(ivCurrentPatches[o], o, false);
           ivValid[o] = tConf[o] > 0.65;
           #if DEBUG
-          std::cout << "\ttracker[" << o << "] result averaged with " << (tmpn-10) 
+          std::cout << "\ttracker[" << o << "] result averaged with " << (tmpn-10)
               << " close detections,\tnew conf = " << tConf[o] << std::endl;
           #endif
-        }    
+        }
         if (tConf[o] < 0.5)
           ivDefined[o] = false;
-      }      
+      }
       #if DEBUG
       else if (bestConf > 0)
         std::cout << "\tbest cluster for object " << o << ": conf=" << bestConf << std::endl;
@@ -561,7 +561,7 @@ void MultiObjectTLD::processFrame(unsigned char * img)
     {
       bool learn = true;
       for (int o = 0; o < ivNObjects; o++)
-        if(!ivDefined[ivLastDetections[i].box.objectId] 
+        if(!ivDefined[ivLastDetections[i].box.objectId]
             || (ivDefined[o] && rectangleOverlap(ivCurrentBoxes[o], ivLastDetections[i].box) > 0.3))
         {
           learn = false;
@@ -588,15 +588,15 @@ void MultiObjectTLD::processFrame(unsigned char * img)
       ivNNClassifier.trainNN(NNPatch(warpedPatches[2*i]), learnBoxes[i].objectId, true, true);
       ivNNClassifier.trainNN(NNPatch(warpedPatches[2*i+1]), learnBoxes[i].objectId, true, true);
     }
-  
+
   // clean up
   for (int i = 0; i < ivNLastDetections; ++i)
     delete detectionPatches[i];
   detectionPatches.clear();
   #if TIMING
   // save time information (for analyzing performance)
-  std::ofstream t_file("runtime.txt", std::ios_base::out | std::ios_base::app);  
-  t_file << std::endl << t_tracker << "\t" << t_detector << "\t" << t_nn << "\t" << t_learner 
+  std::ofstream t_file("runtime.txt", std::ios_base::out | std::ios_base::app);
+  t_file << std::endl << t_tracker << "\t" << t_detector << "\t" << t_nn << "\t" << t_learner
     << "\t" << (t_tracker + t_detector + t_nn + t_learner);
   t_file.close();
   #endif
@@ -656,12 +656,12 @@ void MultiObjectTLD::clusterDetections(float threshold)
         #endif
         continue; // should not happen, just to be sure
       }
-      clBox[i].x /= clN[i]; 
+      clBox[i].x /= clN[i];
       clBox[i].y /= clN[i];
-      clBox[i].width /= clN[i]; 
+      clBox[i].width /= clN[i];
       clBox[i].height /= clN[i];
     }
-    
+
     // compute new assignments
     terminated = true;
     float minOverlap = 2.0f;
@@ -690,10 +690,10 @@ void MultiObjectTLD::clusterDetections(float threshold)
         minOverlap = maxOverlap;
         minOverlapId = i;
       }
-    } 
+    }
     // no assignment changes
     if (terminated)
-    { 
+    {
       if (minOverlap >= threshold)
       {
         terminated = true;
@@ -701,7 +701,7 @@ void MultiObjectTLD::clusterDetections(float threshold)
       }else{
         // add new cluster (the box with minimal overlap)
         clId[minOverlapId] = nClusters;
-        clBox.push_back(ivLastDetections[minOverlapId].box);   
+        clBox.push_back(ivLastDetections[minOverlapId].box);
         clN.push_back(1);
         nClusters++;
         terminated = false;
@@ -724,12 +724,12 @@ void MultiObjectTLD::clusterDetections(float threshold)
 }
 
 void MultiObjectTLD::writeDebugImage(unsigned char * src, char* filename, int mode) const
-{ 
+{
   Matrix rMat;
   Matrix gMat;
   Matrix bMat;
   getDebugImage(src, rMat, gMat, bMat, mode);
-  writePPM(filename, rMat, gMat, bMat);  
+  writePPM(filename, rMat, gMat, bMat);
 }
 
 void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gMat, Matrix& bMat, int mode) const
@@ -739,18 +739,17 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
   prevPt.x=0;
   prevPt.y=0;
   int count;
-  rMat.setSize(ivWidth, ivHeight); 
+  rMat.setSize(ivWidth, ivHeight);
   rMat.copyFromCharArray(src);
-  gMat.setSize(ivWidth, ivHeight); 
+  gMat.setSize(ivWidth, ivHeight);
   gMat.copyFromCharArray(src + (ivColorMode == COLOR_MODE_RGB ? size : 0));
-  bMat.setSize(ivWidth, ivHeight); 
+  bMat.setSize(ivWidth, ivHeight);
   bMat.copyFromCharArray(src + (ivColorMode == COLOR_MODE_RGB ? 2*size : 0));
 
   if (mode & DEBUG_DRAW_PATH)
   {
     for( std::vector<ObjectBox>::const_iterator boxi = ivCurrentBoxes.begin(); boxi != ivCurrentBoxes.end(); boxi++ )
     {
-      std::cout << "CB size: " << boxi->path.size() << std::endl;
       count = 0;
       for( boost::circular_buffer<CvPoint>::const_iterator pti = boxi->path.begin(); pti != boxi->path.end(); pti++ )
       {
@@ -802,7 +801,7 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
         bMat.drawNumber(numberposx, numberposy, i, 0);
       }
     }
-  
+
   if (mode & DEBUG_DRAW_CROSSES)
   {
     const std::vector<int> * debugPoints = ivLKTracker.getDebugPoints();
@@ -810,10 +809,10 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
     {
       rMat.drawCross((*debugPoints)[i], (*debugPoints)[i+1], 0);
       gMat.drawCross((*debugPoints)[i], (*debugPoints)[i+1], 0);
-      bMat.drawCross((*debugPoints)[i], (*debugPoints)[i+1], 255);    
+      bMat.drawCross((*debugPoints)[i], (*debugPoints)[i+1], 255);
     }
   }
-  
+
   const std::vector<std::vector<NNPatch> > * posPatches = ivNNClassifier.getPosPatches();
   const std::vector<NNPatch> * negPatches = ivNNClassifier.getNegPatches();
 
@@ -827,8 +826,8 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
       gMat.drawPatch((*negPatches)[i].patch, x, y, (*negPatches)[i].avg);
       bMat.drawPatch((*negPatches)[i].patch, x, y, (*negPatches)[i].avg);
     }
-  
-  bool drawhistograms = posPatches->size() > 0 && (*posPatches)[0].size() > 0 
+
+  bool drawhistograms = posPatches->size() > 0 && (*posPatches)[0].size() > 0
                             && (*posPatches)[0][0].histogram != NULL;
   int startx = ivWidth;
   for (unsigned int p = 0; p < posPatches->size(); p++)
@@ -855,13 +854,13 @@ void MultiObjectTLD::getDebugImage(unsigned char * src, Matrix& rMat, Matrix& gM
   }
 }
 
-MultiObjectTLD::MultiObjectTLD(int width, int height, int colorMode, int patchSize, int bbMin, 
-                                bool useColor, bool fastRotation, NNClassifier nnc, FernFilter ff, 
+MultiObjectTLD::MultiObjectTLD(int width, int height, int colorMode, int patchSize, int bbMin,
+                                bool useColor, bool fastRotation, NNClassifier nnc, FernFilter ff,
                                 int nObjects, float aspectRatio, bool learningEnabled)
-     : ivWidth(width), ivHeight(height), ivColorMode(colorMode), ivPatchSize(patchSize), 
+     : ivWidth(width), ivHeight(height), ivColorMode(colorMode), ivPatchSize(patchSize),
        ivBBmin(bbMin), ivUseColor(useColor), ivEnableFastRotation(fastRotation),
-       ivLKTracker(LKTracker(width, height)), ivNNClassifier(nnc), ivFernFilter(ff), 
-       ivNObjects(nObjects), ivAspectRatio(aspectRatio), 
+       ivLKTracker(LKTracker(width, height)), ivNNClassifier(nnc), ivFernFilter(ff),
+       ivNObjects(nObjects), ivAspectRatio(aspectRatio),
        ivLearningEnabled(learningEnabled), ivNLastDetections(0)
 {
   #if TIMING
@@ -879,7 +878,7 @@ MultiObjectTLD::MultiObjectTLD(int width, int height, int colorMode, int patchSi
 void MultiObjectTLD::saveClassifier(const char* filename) const
 {
   std::ofstream fileOutput(filename, std::ios::out | std::ios::binary);
-  
+
   // 1. General motld Data
   fileOutput.write((char*)&ivWidth, sizeof(int));
   fileOutput.write((char*)&ivHeight, sizeof(int));
@@ -891,13 +890,13 @@ void MultiObjectTLD::saveClassifier(const char* filename) const
   fileOutput.write((char*)&ivNObjects, sizeof(int));
   fileOutput.write((char*)&ivAspectRatio, sizeof(float));
   fileOutput.write((char*)&ivLearningEnabled, sizeof(bool));
-  
+
   // 2. nnClassifier
   ivNNClassifier.saveToStream(fileOutput);
-  
+
   // 3. FernFilter
   ivFernFilter.saveToStream(fileOutput);
-  
+
   // eof string
   const char * endstring = "eNd!";
   fileOutput.write(endstring, 4*sizeof(char));
@@ -907,9 +906,9 @@ void MultiObjectTLD::saveClassifier(const char* filename) const
 MultiObjectTLD MultiObjectTLD::loadClassifier(const char* filename)
 {
   std::ifstream fileInput(filename, std::ios::in | std::ios::binary);
-  
+
   // 1. General motld Data
-  int width, height, colorMode, patchSize, bbMin, nObjects; 
+  int width, height, colorMode, patchSize, bbMin, nObjects;
   float aspectRatio; bool learningEnabled, useColor, fastRotation;
   fileInput.read((char*)&width, sizeof(int));
   fileInput.read((char*)&height, sizeof(int));
@@ -921,18 +920,18 @@ MultiObjectTLD MultiObjectTLD::loadClassifier(const char* filename)
   fileInput.read((char*)&nObjects, sizeof(int));
   fileInput.read((char*)&aspectRatio, sizeof(float));
   fileInput.read((char*)&learningEnabled, sizeof(bool));
-  
+
   // 2. nnClassifier
-  NNClassifier nnc(fileInput); 
-  
+  NNClassifier nnc(fileInput);
+
   // 3. FernFilter
   FernFilter ff = FernFilter::loadFromStream(fileInput);
-  
+
   // parse eof string
   char * endstring = new char[5]; endstring[4] = '\0';
   fileInput.read(endstring, 4*sizeof(char));
-  if (endstring[0] == 'e' && endstring[1] == 'N' && 
-      endstring[2] == 'd' && endstring[3] == '!') 
+  if (endstring[0] == 'e' && endstring[1] == 'N' &&
+      endstring[2] == 'd' && endstring[3] == '!')
   {
     std::cout << "File sucessfully loaded!" << std::endl;
   }
@@ -940,10 +939,10 @@ MultiObjectTLD MultiObjectTLD::loadClassifier(const char* filename)
   {
     std::cerr << "Error on loading file!" << std::endl;
   }
-  
+
   fileInput.close();
-  
-  return MultiObjectTLD(width, height, colorMode, patchSize, bbMin, useColor, fastRotation, nnc, ff, 
+
+  return MultiObjectTLD(width, height, colorMode, patchSize, bbMin, useColor, fastRotation, nnc, ff,
                   nObjects, aspectRatio, learningEnabled);
 }
 

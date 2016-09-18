@@ -1,17 +1,17 @@
 /* Copyright (C) 2012 Christian Lutz, Thorsten Engesser
- * 
+ *
  * This file is part of motld
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -42,9 +42,9 @@ public:
   /// Copy constructor
   NNPatch(const NNPatch& copyFrom);
   /// Constructor providing only a patch
-  NNPatch(const Matrix& curPatch);  
+  NNPatch(const Matrix& curPatch);
   /// Constructor creating the color histogram
-  NNPatch(const Matrix& curPatch, const ObjectBox& bbox, 
+  NNPatch(const Matrix& curPatch, const ObjectBox& bbox,
           const unsigned char * rgb = NULL, const int w = 0, const int h = 0);
   /// Constructor extracting the patch and the color histogram out of the image
   NNPatch(const ObjectBox& bbox, const Matrix& curImage, const int patchSize,
@@ -85,7 +85,7 @@ public:
   void removeWarps();
   /// Saves the classifier (i.e. the patches) to file.
   void saveToStream(std::ofstream & outputStream) const;
-  
+
 private:
   int ivWidth;
   int ivHeight;
@@ -104,10 +104,10 @@ private:
 /**************************************************************************************************
  * IMPLEMENTATION                                                                                 *
  **************************************************************************************************/
- 
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NNPatch
- 
+
 NNPatch::NNPatch(const NNPatch& copyFrom)
 {
   patch = Matrix(copyFrom.patch);
@@ -122,7 +122,7 @@ NNPatch::NNPatch(const NNPatch& copyFrom)
   }else
     histogram = NULL;
 }
-  
+
 NNPatch::NNPatch(const Matrix& curPatch)
 {
   patch = curPatch;
@@ -130,56 +130,56 @@ NNPatch::NNPatch(const Matrix& curPatch)
   patch += -avg;
   norm2 = patch.norm2();
   histogram = NULL;
-}  
+}
 
-NNPatch::NNPatch(const Matrix& curPatch, const ObjectBox& bbox, 
+NNPatch::NNPatch(const Matrix& curPatch, const ObjectBox& bbox,
                  const unsigned char * rgb, const int w, const int h)
 {
   patch = curPatch;
   avg = patch.avg();
   patch += -avg;
   norm2 = patch.norm2();
-  histogram = (rgb == NULL ? NULL 
+  histogram = (rgb == NULL ? NULL
                   : Histogram::getInstance()->getColorDistribution(rgb, w, h, bbox));
 }
 
-NNPatch::NNPatch(const ObjectBox& bbox, const Matrix& curImage, const int patchSize, 
+NNPatch::NNPatch(const ObjectBox& bbox, const Matrix& curImage, const int patchSize,
                  const unsigned char * rgb, const int w, const int h)
 {
-  patch = curImage.getRectSubPix(bbox.x + 0.5 * bbox.width, bbox.y + 0.5 * bbox.height, 
+  patch = curImage.getRectSubPix(bbox.x + 0.5 * bbox.width, bbox.y + 0.5 * bbox.height,
                                   round(bbox.width), round(bbox.height));
   patch.rescale(patchSize, patchSize);
   avg = patch.avg();
   patch += -avg;
   norm2 = patch.norm2();
-  histogram = (rgb == NULL ? NULL 
+  histogram = (rgb == NULL ? NULL
                   : Histogram::getInstance()->getColorDistribution(rgb, w, h, bbox));
 }
 
 NNPatch::NNPatch(std::ifstream & inputStream, const int patchSize)
 {
   patch = Matrix(patchSize, patchSize);
-  inputStream.read((char*)patch.data(), patchSize*patchSize*sizeof(float));  
-  inputStream.read((char*)&avg, sizeof(float));  
-  inputStream.read((char*)&norm2, sizeof(float));  
+  inputStream.read((char*)patch.data(), patchSize*patchSize*sizeof(float));
+  inputStream.read((char*)&avg, sizeof(float));
+  inputStream.read((char*)&norm2, sizeof(float));
   bool hist;
-  inputStream.read((char*)&hist, sizeof(bool));  
+  inputStream.read((char*)&hist, sizeof(bool));
   if(hist){
     histogram = new float[NUM_BINS];
-    inputStream.read((char*)histogram, NUM_BINS*sizeof(float));  
+    inputStream.read((char*)histogram, NUM_BINS*sizeof(float));
   }else
     histogram = NULL;
 }
 
 void NNPatch::saveToStream(std::ofstream & outputStream) const
 {
-  outputStream.write((char*)patch.data(), patch.size()*sizeof(float));  
-  outputStream.write((char*)&avg, sizeof(float));  
-  outputStream.write((char*)&norm2, sizeof(float));  
+  outputStream.write((char*)patch.data(), patch.size()*sizeof(float));
+  outputStream.write((char*)&avg, sizeof(float));
+  outputStream.write((char*)&norm2, sizeof(float));
   bool hist = histogram != NULL;
-  outputStream.write((char*)&hist, sizeof(bool));  
+  outputStream.write((char*)&hist, sizeof(bool));
   if(hist)
-    outputStream.write((char*)histogram, NUM_BINS*sizeof(float));  
+    outputStream.write((char*)histogram, NUM_BINS*sizeof(float));
 }
 
 NNPatch::~NNPatch()
@@ -212,7 +212,7 @@ NNPatch& NNPatch::operator=(const NNPatch& copyFrom)
 
 Histogram * NNClassifier::ivHistogram = Histogram::getInstance();
 
-NNClassifier::NNClassifier(int width, int height, int patchSize, bool useColor, bool allowFastChange) 
+NNClassifier::NNClassifier(int width, int height, int patchSize, bool useColor, bool allowFastChange)
   : ivWidth(width), ivHeight(height), ivPatchSize(patchSize),
     ivUseColor(useColor), ivAllowFastChange(allowFastChange) {}
 
@@ -233,7 +233,7 @@ NNClassifier::NNClassifier(std::ifstream & inputStream)
   {
     inputStream.read((char*)&nPos, sizeof(int));
     for(int j = 0; j < nPos; ++j)
-      ivPosPatches[i].push_back(NNPatch(inputStream, ivPatchSize));  
+      ivPosPatches[i].push_back(NNPatch(inputStream, ivPatchSize));
   }
 }
 
@@ -263,11 +263,11 @@ void NNClassifier::addObject(const NNPatch& patch)
   ivWarpIndices.push_back(0);
   // remove negative patches that are too similar to this new object
   for(int i = ivNegPatches.size() - 1; i >= 0; i--)
-  {  
-    double ncc = crossCorr(ivNegPatches[i].patch.data(), patch.patch.data(), 
+  {
+    double ncc = crossCorr(ivNegPatches[i].patch.data(), patch.patch.data(),
                            ivNegPatches[i].norm2 * patch.norm2);
     if(ncc > 0.8){
-      ivNegPatches.erase(ivNegPatches.begin() + i);    
+      ivNegPatches.erase(ivNegPatches.begin() + i);
       #if DEBUG
       std::cout << "removed negative patch " << i << " (ncc = " << ncc << ")" << std::endl;
       #endif
@@ -287,7 +287,7 @@ bool NNClassifier::trainNN(const NNPatch& patch, int objId, bool positive, bool 
   {
     if(conf < 0.75)
     {
-      ivPosPatches[objId].push_back(patch);    
+      ivPosPatches[objId].push_back(patch);
       if(tmp)
         ivWarpIndices[objId]++;
       return true;
@@ -361,11 +361,11 @@ double NNClassifier::getConf(const float* patch, float norm2, int objId, bool co
     {
       posNCCs[i] = crossCorr(ivPosPatches[objId][i].patch.data(), patch, (ivPosPatches[objId][i].norm2 * norm2));
       if (!ivAllowFastChange && conservative && i > nPos/2)
-        posNCCs[i] *= 1.0 - 0.05 * (i-nPos/2) / (double)nPos;  
+        posNCCs[i] *= 1.0 - 0.05 * (i-nPos/2) / (double)nPos;
     }
     for (int i = 0; i < nPos; i++)
       if (posNCCs[i] > posNCC)
-        posNCC = posNCCs[i]; 
+        posNCC = posNCCs[i];
     delete[] posNCCs;
   }
   //max NCC with negative examples
@@ -383,7 +383,7 @@ double NNClassifier::getConf(const float* patch, float norm2, int objId, bool co
     delete[] negNCCs;
   }else
     negNCC = 0.3; //hack! there should always be a negative example from initialization
-    
+
   if(objId < 0)
     return negNCC;
   return (1 - negNCC) / (2 - negNCC - posNCC);
@@ -405,7 +405,7 @@ double NNClassifier::cmpHistograms(const float* h1, const float* h2) const
   double corr = 0;
 	double norm1 = 0;
 	double norm2 = 0;
-	for (int i = 0; i < NUM_BINS; ++i) 
+	for (int i = 0; i < NUM_BINS; ++i)
 	{
 		corr  += (h1[i]-INVBINS) * (h2[i]-INVBINS);
 		norm1 += (h1[i]-INVBINS) * (h1[i]-INVBINS);

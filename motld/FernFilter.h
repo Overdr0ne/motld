@@ -1,17 +1,17 @@
 /* Copyright (C) 2012 Christian Lutz, Thorsten Engesser
- * 
+ *
  * This file is part of motld
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -95,7 +95,7 @@ class FernFilter
 public:
   /// public constructor
   FernFilter(const int & width, const int & height, const int & numFerns,
-             const int & featuresPerFern, const int & patchSize = 15, 
+             const int & featuresPerFern, const int & patchSize = 15,
              const int & scaleMin = -10, const int & scaleMax = 11, const int & bbMin = 24);
   /// copy constructor
   FernFilter(const FernFilter & other);
@@ -121,7 +121,7 @@ public:
   void applyPreferences();
   /// changes settings for warping
   void changeWarpSettings(const WarpSettings & initSettings, const WarpSettings & updateSettings);
-  
+
 private:
   // Methods for feature extraction / fern manipulation etc.
   void createScaledMatrix(const Matrix& image, Matrix & scaled, float*& sat, float*& sat2, int scale) const;
@@ -134,24 +134,24 @@ private:
   float * calcConfidences(int * features) const;
   void addPatch(const int & objId, const int * const featureData, const bool & pos);
   void addPatch(const Matrix& scaledImage, const int& objId, const bool& pos);
-  void addPatchWithWarps(const Matrix & image, const ObjectBox & box, const WarpSettings & ws, 
+  void addPatchWithWarps(const Matrix & image, const ObjectBox & box, const WarpSettings & ws,
                          std::vector<Matrix> & op, const bool & pos, const bool & notOnlyVar = true);
   void addWarpedPatches(const Matrix & image, const ObjectBox & box, const WarpSettings & ws,
                         std::vector<Matrix> & op, const bool & pos);
   void clearLastDetections() const;
-  
+
   // Methods for initialization
   int *** createFeatures();
   void initializeFerns();
   void computeOffsets();
   int ** computeOffsets(int width);
   void addObjectToFerns();
-  
+
   // Helper
   int calcTableSize() const;
   void debugOutput() const;
   FernDetection copyFernDetection(const FernDetection & fd) const;
-  
+
   struct Posteriors
   {
     int n;
@@ -160,7 +160,7 @@ private:
   };
 
   struct Confidences
-  { 
+  {
     float maxConf;
     std::map<int, Posteriors> posteriors;
   };
@@ -176,7 +176,7 @@ private:
     int * varianceIndizes;
     int ** offsets;
   };
-  
+
   #if DEBUG && TIMING
   struct ScanTime
   {
@@ -188,20 +188,20 @@ private:
     int time5GenPatches;
   };
 #endif
-  
+
   // changeable input image dimensions
   int ivWidth;
   int ivHeight;
-  
+
   // hard classifier configuration
   const int ivNumFerns;
   const int ivFeaturesPerFern;
   const int ivPatchSize;
-  
+
   // helper classifier constants
   const int ivPatchSizeMinusOne;
   const int ivPatchSizeSquared;
-  
+
   // changable scan settings
   int ivOriginalWidth;
   int ivOriginalHeight;
@@ -210,7 +210,7 @@ private:
   int ivBBmin;
   WarpSettings ivInitWarpSettings;
   WarpSettings ivUpdateWarpSettings;
-  
+
   // Fern Data
   int *** ivFeatures;
 #if USEMAP
@@ -221,7 +221,7 @@ private:
   std::vector<float**> ivTable;
   float **ivMaxTable;
 #endif
-  
+
   // further instance variables
   int ivNumObjects;
   int ivScanNoZoom;
@@ -230,7 +230,7 @@ private:
   std::vector<ScanSettings> ivScans;
   std::vector<float> ivMinVariances;
   mutable std::vector<FernDetection> ivLastDetections;
-  
+
   // some default structures
   static const WarpSettings cDefaultInitWarpSettings;
   static const WarpSettings cDefaultUpdateWarpSettings;
@@ -245,11 +245,11 @@ const WarpSettings FernFilter::cDefaultUpdateWarpSettings = {10, 10, 5, 20, 0.2,
 ******************************************************************************/
 
 FernFilter::FernFilter(const int & width, const int & height, const int & numFerns,
-                       const int & featuresPerFern, const int & patchSize, 
+                       const int & featuresPerFern, const int & patchSize,
                        const int & scaleMin, const int & scaleMax, const int & bbMin)
                       : ivWidth(width), ivHeight(height), ivNumFerns(numFerns),
                         ivFeaturesPerFern(featuresPerFern), ivPatchSize(patchSize),
-                        ivPatchSizeMinusOne(patchSize-1), 
+                        ivPatchSizeMinusOne(patchSize-1),
                         ivPatchSizeSquared(patchSize*patchSize),
                         ivScaleMin(scaleMin), ivScaleMax(scaleMax), ivBBmin(bbMin),
                         ivInitWarpSettings(cDefaultInitWarpSettings),
@@ -264,10 +264,10 @@ const std::vector<Matrix> FernFilter::addObjects(const Matrix& image, const std:
 {
   std::vector<Matrix> result;
   std::vector<Matrix> posResult; // IDEA: positive warps could also be returned
-  
+
   if (boxes.empty())
     return result;
-  
+
   if (ivNumObjects == 0)
   {
     ivOriginalHeight = boxes[0].height;
@@ -275,7 +275,7 @@ const std::vector<Matrix> FernFilter::addObjects(const Matrix& image, const std:
     computeOffsets();
     //debugOutput();
   }
-  
+
   for (unsigned int i = 0; i < boxes.size(); ++i)
   {
     if (boxes[i].objectId != ivNumObjects + (int)i)
@@ -284,34 +284,34 @@ const std::vector<Matrix> FernFilter::addObjects(const Matrix& image, const std:
     addObjectToFerns();
     addPatchWithWarps(image, boxes[i], ivInitWarpSettings, posResult, true);
   }
-  
+
   if (ivNumObjects == 0)
     result = retrieveHighVarianceSamples(image, boxes);
-  
+
   ivNumObjects += boxes.size();
-  
+
   return result;
 }
 
 const std::vector<FernDetection> FernFilter::scanPatch(const Matrix & image) const
-{ 
+{
   // Pipeline structure
   std::vector<FernDetection> varianceFiltered;
   std::vector<FernDetection> fernFiltered1;
   std::vector<FernDetection> result;
-  
+
   // scaled images, summed area tables
   Matrix* scaled; float** sats; float** sat2s;
-  
+
   clearLastDetections();
-  
+
   if (ivNumObjects == 0)
     return result;
-  
+
 #if DEBUG && TIMING
 ScanTime st;
 #endif
-  
+
 #pragma omp parallel
 {
 
@@ -319,37 +319,37 @@ ScanTime st;
   #pragma omp master
   st.time0ScaledImages = getTime();
 #endif
-  
+
   // Step 0 - Precalculate Scaled Images / Summed Area Tables
   createScaledMatrices(image, scaled, sats, sat2s); // HIER
-  
+
 #if DEBUG && TIMING
   #pragma omp master
   st.time1Variance = getTime();
 #endif
-  
+
   // STEP 1 - Scan, Filter by Variance
 #pragma omp barrier
 #pragma omp for schedule(dynamic)
   for (unsigned int i = 0; i < ivScans.size(); ++i)
     varianceFilter(scaled[i].data(), sats[i], sat2s[i], i, varianceFiltered);
-  
+
 #if DEBUG && TIMING
 #pragma omp master
   st.time2GenFeatures = getTime();
 #endif
-  
+
   // STEP 2 - Calculate Feature Data
 #pragma omp barrier
 #pragma omp for
   for (unsigned int i = 0; i < varianceFiltered.size(); ++i)
     extractFeatures(varianceFiltered[i]);
-  
+
 #if DEBUG && TIMING
 #pragma omp master
   st.time3CoarseFilter = getTime();
 #endif
-  
+
   // STEP 3 - Coarse filtering By Fern
 #pragma omp barrier
   float confidenceThreshold = CONFIDENCETHRESHOLD * ivNumFerns;
@@ -364,19 +364,19 @@ ScanTime st;
     else
       delete[] det.featureData;
   }
-  
+
 #if DEBUG && TIMING
 #pragma omp master
   st.time4FineFilter = getTime();
 #endif
-  
+
   // STEP 4 - Fine filtering By Fern
 #pragma omp barrier
   if (ivNumObjects == 1)
   {
 #pragma omp single
     result = fernFiltered1;
-  } 
+  }
   else
   {
 #pragma omp for
@@ -400,12 +400,12 @@ ScanTime st;
       delete[] det.featureData;
     }
   }
-  
+
 #if DEBUG && TIMING
 #pragma omp master
   st.time5GenPatches = getTime();
 #endif
-  
+
   // STEP 5 finally add patches
 #pragma omp barrier
 #pragma omp for
@@ -414,12 +414,12 @@ ScanTime st;
     result[i].patch.copyFromFloatArray(result[i].imageOffset,((ScanSettings*)(result[i].ss))->width,ivPatchSize,ivPatchSize);
   }
 }
-  
+
 
 #if DEBUG && TIMING
   int timefinished = getTime();
 #endif
-  
+
 #if DEBUG && TIMING
   // convert absolute time to relative time
   st.time0ScaledImages = st.time1Variance     - st.time0ScaledImages;
@@ -429,7 +429,7 @@ ScanTime st;
   st.time4FineFilter   = st.time5GenPatches   - st.time4FineFilter;
   st.time5GenPatches   = timefinished         - st.time5GenPatches;
 #endif
-  
+
   delete[] scaled;
   for (unsigned int i = 0; i < ivScans.size(); ++i)
   {
@@ -438,11 +438,11 @@ ScanTime st;
   }
   delete[] sats;
   delete[] sat2s;
-  
+
   ivLastDetections = result;
- 
-#if DEBUG  
-  std::cout << "Patch Filterig Pipeline: " << varianceFiltered.size() << " >> " << fernFiltered1.size() 
+
+#if DEBUG
+  std::cout << "Patch Filterig Pipeline: " << varianceFiltered.size() << " >> " << fernFiltered1.size()
             << " >> " << result.size();
 #if TIMING
   std::cout << " | Time: " << st.time0ScaledImages << ", " << st.time1Variance << ", " << st.time2GenFeatures
@@ -450,7 +450,7 @@ ScanTime st;
 #endif
   std::cout << std::endl;
 #endif
-  
+
   return result;
 }
 
@@ -462,17 +462,17 @@ const std::vector<Matrix> FernFilter::learn(const Matrix & image, const std::vec
 #endif
 
   std::vector<Matrix> result;
-  
+
   int del = 0;
-  
+
   bool * valid = new bool[ivNumObjects];
   ObjectBox * bx = new ObjectBox[ivNumObjects];
   memset(valid, 0, ivNumObjects * sizeof(bool));
-  
+
   // reinitialize varianceThreshold
   float lastVariance = ivVarianceThreshold;
   ivVarianceThreshold = 100000;
-  
+
   // CATEGORIZE BOXES AND LEARN POSITIVE EXAMPLES
   for (std::vector<ObjectBox>::const_iterator bi = boxes.begin(); bi < boxes.end(); ++bi)
   {
@@ -480,7 +480,7 @@ const std::vector<Matrix> FernFilter::learn(const Matrix & image, const std::vec
     bx[bi->objectId] = *bi;
     addPatchWithWarps(image, *bi, ivUpdateWarpSettings, result, true, !onlyVariance);
   }
-  
+
   // calculate final variance value
   for (int nObj = 0; nObj < ivNumObjects; ++nObj)
   {
@@ -492,7 +492,7 @@ const std::vector<Matrix> FernFilter::learn(const Matrix & image, const std::vec
   float varThresholdSoll = MAX(VARIANCETHRESHOLDFACTOR*ivVarianceThreshold, VARIANCEMINTHRESHOLD);
   float diff = varThresholdSoll - lastVariance;
   ivVarianceThreshold = diff > 0 ? varThresholdSoll : lastVariance + diff * VARIANCETHRESHOLDDESCENDRATE;
-  
+
   // UN-LEARN NEGATIVE EXAMPLES
   if (!onlyVariance)
   {
@@ -518,7 +518,7 @@ const std::vector<Matrix> FernFilter::learn(const Matrix & image, const std::vec
   std::cout << "Fern Learner: +" << boxes.size() << " , -" << del << " | Variance: " << ivVarianceThreshold
             << " | Time: " << tEnd - tStart << std::endl;
 #endif
-  
+
   return result;
 }
 
@@ -539,12 +539,12 @@ void FernFilter::saveToStream(std::ofstream & outputStream) const
   outputStream.write((char*)&ivInitWarpSettings, sizeof(WarpSettings));
   outputStream.write((char*)&ivUpdateWarpSettings, sizeof(WarpSettings));
   outputStream.write((char*)&ivVarianceThreshold, sizeof(float));
-  
+
   // 2. fern features
   for (int nFern = 0; nFern < ivNumFerns; ++nFern)
     for (int nFernFeature = 0; nFernFeature < ivFeaturesPerFern; ++nFernFeature)
       outputStream.write((char*)(ivFeatures[nFern][nFernFeature]), 4*sizeof(int));
-  
+
   // 3. fern structures
 #if USEMAP
   for (int nFern = 0; nFern < ivNumFerns; ++nFern)
@@ -557,7 +557,7 @@ void FernFilter::saveToStream(std::ofstream & outputStream) const
       outputStream.write((char*)&(it->second.maxConf), sizeof(float));
       int entrySize = it->second.posteriors.size();
       outputStream.write((char*)&entrySize, sizeof(int));
-      for (std::map<int, Posteriors>::iterator it2  = it->second.posteriors.begin(); 
+      for (std::map<int, Posteriors>::iterator it2  = it->second.posteriors.begin();
                                          it2 != it->second.posteriors.end(); ++it2)
       {
         outputStream.write((char*)&(it2->first), sizeof(int));
@@ -571,15 +571,15 @@ void FernFilter::saveToStream(std::ofstream & outputStream) const
 
   // 4. minVariance
   outputStream.write((char*)ivMinVariances.data(), ivNumObjects*sizeof(float));
-    
+
   /* DEBUGGING - print out instance variables
   std::cout << ivWidth << ", " << ivHeight << ", " << ivNumObjects << ", " << ivNumFerns
             << ", " << ivFeaturesPerFern << ", " << ivPatchSize << ", " << ivScaleMin
             << ", " << ivScaleMax << ", " << ivBBmin << ", " << ivVarianceThreshold << std::endl;
-  std::cout << ivInitWarpSettings.angle << ", " << ivInitWarpSettings.noise << ", " 
+  std::cout << ivInitWarpSettings.angle << ", " << ivInitWarpSettings.noise << ", "
             << ivInitWarpSettings.scale << ", " << ivInitWarpSettings.shift << " | "
       << ivInitWarpSettings.num_closest << ", " << ivInitWarpSettings.num_warps << std::endl;
-  std::cout << ivUpdateWarpSettings.angle << ", " << ivUpdateWarpSettings.noise << ", " 
+  std::cout << ivUpdateWarpSettings.angle << ", " << ivUpdateWarpSettings.noise << ", "
             << ivUpdateWarpSettings.scale << ", " << ivUpdateWarpSettings.shift << " | "
       << ivUpdateWarpSettings.num_closest << ", " << ivUpdateWarpSettings.num_warps << std::endl;
    */
@@ -606,7 +606,7 @@ FernFilter FernFilter::loadFromStream(std::ifstream & inputStream)
   inputStream.read((char*)&initWarpSettings, sizeof(WarpSettings));
   inputStream.read((char*)&updateWarpSettings, sizeof(WarpSettings));
   inputStream.read((char*)&varianceThreshold, sizeof(float));
-  
+
   // 2. fern features
   int *** features = new int**[numFerns];
   for (int nFern = 0; nFern < numFerns; ++nFern)
@@ -618,7 +618,7 @@ FernFilter FernFilter::loadFromStream(std::ifstream & inputStream)
       inputStream.read((char*)(features[nFern][nFernFeature]), 4*sizeof(int));
     }
   }
-  
+
   // 3. fern structures
 #if USEMAP
   std::map<int, Confidences> * fernForest = new std::map<int, Confidences>[numFerns];
@@ -653,7 +653,7 @@ FernFilter FernFilter::loadFromStream(std::ifstream & inputStream)
   // 4. minVariance
   std::vector<float> minVariances(numObjects);
   inputStream.read((char*)minVariances.data(), numObjects * sizeof(float));
-  
+
   // finally generate fern filter
   FernFilter result(width, height, numFerns, featuresPerFern, patchSize, scaleMin, scaleMax, bbMin);
   result.ivNumObjects = numObjects;
@@ -669,31 +669,31 @@ FernFilter FernFilter::loadFromStream(std::ifstream & inputStream)
   result.ivMinVariances = minVariances;
   result.computeOffsets();
   // result.debugOutput();
-  
+
   /* DEBUGGING - print out loaded instance variables
   std::cout << width << ", " << height << ", " << numObjects << ", " << numFerns
             << ", " << featuresPerFern << ", " << patchSize << ", " << scaleMin
             << ", " << scaleMax << ", " << bbMin << ", " << varianceThreshold << std::endl;
-  std::cout << initWarpSettings.angle << ", " << initWarpSettings.noise << ", " 
+  std::cout << initWarpSettings.angle << ", " << initWarpSettings.noise << ", "
             << initWarpSettings.scale << ", " << initWarpSettings.shift << " | "
             << initWarpSettings.num_closest << ", " << initWarpSettings.num_warps << std::endl;
-  std::cout << updateWarpSettings.angle << ", " << updateWarpSettings.noise << ", " 
+  std::cout << updateWarpSettings.angle << ", " << updateWarpSettings.noise << ", "
             << updateWarpSettings.scale << ", " << updateWarpSettings.shift << " | "
             << updateWarpSettings.num_closest << ", " << updateWarpSettings.num_warps << std::endl;
   std::cout << result.ivFernForest->size() << ", " << result.ivScans.size() << std::endl;
   */
- 
+
   return result;
 }
 
 FernFilter::FernFilter(const FernFilter& source) :
-  ivWidth(source.ivWidth), ivHeight(source.ivHeight), 
+  ivWidth(source.ivWidth), ivHeight(source.ivHeight),
   ivNumFerns(source.ivNumFerns), ivFeaturesPerFern(source.ivFeaturesPerFern),
-  ivPatchSize(source.ivPatchSize), ivPatchSizeMinusOne(source.ivPatchSizeMinusOne), 
+  ivPatchSize(source.ivPatchSize), ivPatchSizeMinusOne(source.ivPatchSizeMinusOne),
   ivPatchSizeSquared(source.ivPatchSizeSquared),
   ivOriginalWidth(source.ivOriginalWidth),
   ivOriginalHeight(source.ivOriginalHeight),
-  ivScaleMin(source.ivScaleMin), 
+  ivScaleMin(source.ivScaleMin),
   ivScaleMax(source.ivScaleMax), ivBBmin(source.ivBBmin),
   ivInitWarpSettings(source.ivInitWarpSettings),
   ivUpdateWarpSettings(source.ivUpdateWarpSettings),
@@ -713,7 +713,7 @@ FernFilter::FernFilter(const FernFilter& source) :
       memcpy(ivFeatures[nFern][nFeature], source.ivFeatures[nFern][nFeature], 4*sizeof(int));
     }
   }
-  
+
   // copy fern data
 #if USEMAP
   ivFernForest = new std::map<int, Confidences>[ivNumFerns];
@@ -724,17 +724,17 @@ FernFilter::FernFilter(const FernFilter& source) :
 #else
   std::cerr << "COPY CONSTRUCTOR NOT YET IMPLEMENTED FOR LOOKUP TABLE!" << std::endl;
 #endif
-    
+
 #if USEMAP
   int offsetSize = 16*ivFeaturesPerFern;
 #else
   int offsetSize = 4*ivFeaturesPerFern;
 #endif
-    
+
   // copy scan data
   if (source.ivNumObjects > 0)
   {
-    for (std::vector<ScanSettings>::const_iterator it = source.ivScans.begin(); 
+    for (std::vector<ScanSettings>::const_iterator it = source.ivScans.begin();
                                              it < source.ivScans.end();
                                                    ++it)
     {
@@ -749,7 +749,7 @@ FernFilter::FernFilter(const FernFilter& source) :
       memcpy(ss.varianceIndizes, it->varianceIndizes, 4 * sizeof(int));
       ivScans.push_back(ss);
     }
-    
+
     //ivPatchSizeOffsets;
     ivPatchSizeOffsets = new int*[ivNumFerns];
     for (int nFern = 0; nFern < ivNumFerns; ++nFern)
@@ -768,7 +768,7 @@ FernFilter::~FernFilter()
 #else
   std::cerr << "Destructor not implemented for table lookup!" << std::endl;
 #endif
-  
+
   if (ivNumObjects > 0)
   {
     // Scan Settings / Offsets
@@ -868,7 +868,7 @@ inline void FernFilter::createScaledMatrices(const Matrix& image, Matrix*& scale
 }
 
 inline void FernFilter::varianceFilter(float * image, float * sat, float * sat2, int scale, std::vector<FernDetection> & acc) const
-{   
+{
   ScanSettings ss = ivScans[scale];
   int right = ss.width - ivPatchSizeMinusOne;
   int bottom = ss.height - ivPatchSizeMinusOne;
@@ -879,22 +879,22 @@ inline void FernFilter::varianceFilter(float * image, float * sat, float * sat2,
     float * satPos = sat + yDiff;
     float * sat2Pos = sat2 + yDiff;
     float * imgPos = image + y * ss.width;
-      
+
 #if USEFASTSCAN
     int fst = y % 2;
     if (fst == 1) { imgPos++; satPos++; sat2Pos++; }
     int step = 2;
 #else
     int fst = 0;
-    int step = 1;   
+    int step = 1;
 #endif
-      
+
     for (int x = fst; x < right; x += step, sat2Pos += step, satPos += step, imgPos += step) //, ++start
     {
       float ex2 = summedTableArea(sat2Pos,ss.varianceIndizes)/ivPatchSizeSquared;
       float ex = summedTableArea(satPos,ss.varianceIndizes)/ivPatchSizeSquared;
       float variance = ex2 - ex*ex;
-        
+
       if (variance >= ivVarianceThreshold)
       {
         FernDetection fd;
@@ -903,7 +903,7 @@ inline void FernFilter::varianceFilter(float * image, float * sat, float * sat2,
         fd.box = box;
         fd.confidence = variance;
         fd.ss = &(ivScans[scale]);
-        
+
 #if USETBBP
         fd.featureData = (int*)satPos;
 #else
@@ -919,13 +919,13 @@ inline void FernFilter::varianceFilter(float * image, float * sat, float * sat2,
 inline std::vector<Matrix> FernFilter::retrieveHighVarianceSamples(const Matrix& image, const std::vector<ObjectBox>& boxes)
 {
   std::vector<Matrix> result;
-  
+
   // generate Summed Area Tables
-  Matrix scaled; 
+  Matrix scaled;
   float* sat;
   float* sat2;
   createScaledMatrix(image, scaled, sat, sat2, ivScanNoZoom);
-  
+
   // scan and order hits
   std::vector<FernDetection> varianceDetections;
   float ivVarTTmp = ivVarianceThreshold;
@@ -933,7 +933,7 @@ inline std::vector<Matrix> FernFilter::retrieveHighVarianceSamples(const Matrix&
   varianceFilter(scaled.data(), sat, sat2, ivScanNoZoom, varianceDetections);
   ivVarianceThreshold = ivVarTTmp;
   std::sort(varianceDetections.begin(), varianceDetections.end(), FernDetection::fdBetter);
-  
+
   std::vector<ObjectBox> allBoxes = boxes;
   for (unsigned int i = 0; i < varianceDetections.size() && result.size() < NUMNEGTRAININGEXAMPLES; ++i)
   {
@@ -949,10 +949,10 @@ inline std::vector<Matrix> FernFilter::retrieveHighVarianceSamples(const Matrix&
       result.push_back(m);
     }
   }
-  
+
   delete[] sat;
   delete[] sat2;
-  
+
   return result;
 }
 
@@ -978,10 +978,10 @@ inline void FernFilter::initializeFerns()
 {
 #if USEMAP
   ivFernForest = new std::map<int, Confidences>[ivNumFerns];
-  
+
 #else
   int tableSize = calcTableSize();
-  
+
   ivMaxTable = new float*[ivNumFerns];
   for (int nFern = 0; nFern < ivNumFerns; ++nFern)
   {
@@ -1017,34 +1017,34 @@ inline void FernFilter::computeOffsets()
 {
   ivScans.clear();
   ivScanNoZoom  = 0;
-  
+
   for (int scli = ivScaleMin; scli < ivScaleMax; ++scli)
   {
     ScanSettings ss;
-    
+
     float scale = pow(1.2, scli);
-    
+
     ss.boxw = ivOriginalWidth * scale;
     ss.boxh = ivOriginalHeight * scale;
-    
+
     if (ss.boxw < ivBBmin || ss.boxh < ivBBmin || ss.boxw > ivWidth || ss.boxh > ivHeight)
       continue;
-    
+
     ss.pixw = ss.boxw / ivPatchSize;
     ss.pixh = ss.boxh / ivPatchSize;
-    
+
     ss.width  = round(ivWidth  / ss.pixw);
     ss.height = round(ivHeight / ss.pixh);
-    
+
     ss.varianceIndizes = getSATIndices(ss.width, ivPatchSize, ivPatchSize);
     ss.offsets = computeOffsets(ss.width);
-    
+
     if (scli == 0)
       ivScanNoZoom = ivScans.size();
-    
+
     ivScans.push_back(ss);
   }
-  
+
   ivPatchSizeOffsets = computeOffsets(ivPatchSize);
 }
 
@@ -1064,13 +1064,13 @@ inline int ** FernFilter::computeOffsets(int width)
       int right = left + feature[2] - 1;
       int centerl = left + hpix - 1;
       int centerr = right - hpix + 1;
-    
+
       int vpix = feature[3] >> 1;
       int top = feature[1]; // + y = + 0
       int bottom = top + feature[3] - 1;
       int middlet = top + vpix - 1;
       int middleb = bottom - vpix + 1;
-      
+
       getSATIndices(currentPos     , width, left   ,     top,   right, middlet);
       getSATIndices(currentPos +  4, width, left   , middleb,   right,  bottom);
       getSATIndices(currentPos +  8, width, left   ,     top, centerl,  bottom);
@@ -1124,18 +1124,18 @@ inline void FernFilter::debugOutput() const
       std::cout << std::endl;
     }
   }
- 
+
   // SCAN SETTINGS
   std::cout << "Scan Settings\nboxw\tboxh\twdth\thght\tpixw\tpixh\tvi1\tvi2\tvi3\tvi4" << std::endl;
-  
+
   for (std::vector<ScanSettings>::const_iterator it = ivScans.begin(); it < ivScans.end(); ++it)
   {
-    std::cout << it->boxw << "\t" << it->boxh << "\t" << it->width << "\t" << it->height << "\t" 
+    std::cout << it->boxw << "\t" << it->boxh << "\t" << it->width << "\t" << it->height << "\t"
               << it->pixw << "\t" << it->pixh << "\t" << it->varianceIndizes[0] << "\t" <<
                  it->varianceIndizes[1] << "\t" << it->varianceIndizes[2] << "\t" <<
                  it->varianceIndizes[3] << std::endl;
   }
-  
+
 }
 
 inline float FernFilter::calcMaxConfidence(int* featureData) const
@@ -1165,7 +1165,7 @@ inline float * FernFilter::calcConfidences(int* features) const
 #if USEMAP
   for (int nFern = 0; nFern < ivNumFerns; ++nFern)
   {
-    std::map<int, Confidences>::const_iterator found = 
+    std::map<int, Confidences>::const_iterator found =
       ivFernForest[nFern].find(features[nFern]);
     if (found != ivFernForest[nFern].end())
     {
@@ -1307,22 +1307,22 @@ inline void FernFilter::addPatch(const Matrix& scaledImage, const int& objId, co
   delete[] features;
 }
 
-inline void FernFilter::addPatchWithWarps(const Matrix& image, const ObjectBox& box, const WarpSettings& ws, 
+inline void FernFilter::addPatchWithWarps(const Matrix& image, const ObjectBox& box, const WarpSettings& ws,
                                           std::vector<Matrix> & op, const bool& pos, const bool& notOnlyVar)
-{ 
+{
   float factX = box.width / ivPatchSize;
   float factY = box.height / ivPatchSize;
   float width = image.xSize() / factX;
   float height = image.ySize() / factY;
-  
-  Matrix scaled = image; scaled.rescale(round(width), round(height));  
+
+  Matrix scaled = image; scaled.rescale(round(width), round(height));
   ObjectBox newB = {box.x / factX, box.y / factY, (float)ivPatchSize, (float)ivPatchSize};
   newB.objectId = box.objectId;
-  
+
   Matrix pt(box.width,box.height);
   pt.copyFromFloatArray(scaled.data(), width, height, round(newB.x), round(newB.y), round(newB.width), round(newB.height));
   pt.rescale(ivPatchSize,ivPatchSize);
-  
+
   float ** sats = pt.createSummedAreaTable2();
   const int index = (ivPatchSize+1)*(ivPatchSize+1)-1;
   const int nPixels = ivPatchSize * ivPatchSize;
@@ -1330,10 +1330,10 @@ inline void FernFilter::addPatchWithWarps(const Matrix& image, const ObjectBox& 
   const float ex = sats[0][index] / nPixels;
   const float exex = ex * ex;
   const float variance = ex2 - exex;
-  
+
   ivMinVariances[box.objectId] = MIN(ivMinVariances[box.objectId], variance);
   ivVarianceThreshold = MIN(ivVarianceThreshold, variance);
-  
+
   if (notOnlyVar)
   {
 #if USETBBP
@@ -1346,25 +1346,25 @@ inline void FernFilter::addPatchWithWarps(const Matrix& image, const ObjectBox& 
     addWarpedPatches(scaled, newB, ws, op, pos);
     delete[] data;
   }
-  
+
   delete[] sats[0];
   delete[] sats[1];
   delete[] sats;
 }
 
-inline void FernFilter::addWarpedPatches(const Matrix& image, const ObjectBox& box, const WarpSettings& ws, 
+inline void FernFilter::addWarpedPatches(const Matrix& image, const ObjectBox& box, const WarpSettings& ws,
                                          std::vector<Matrix> & op, const bool& pos)
-{  
-  
+{
+
   // Default Warps!
   Matrix defWl = Matrix::createWarpMatrix( 0.2, 1);
   //Matrix defWn = createWarpMatrix(   0, 1);
   Matrix defWr = Matrix::createWarpMatrix(-0.2, 1);
-  
+
   Matrix imgWarpL = image.affineWarp(defWl, box, false);
   //Matrix imgWarpN = image.affineWarp(defWn, box, false);
   Matrix imgWarpR = image.affineWarp(defWr, box, false);
-  
+
   /* DEBUGGING - print affine warps
   static int x = 0;
   char filenameL[255];
@@ -1378,31 +1378,31 @@ inline void FernFilter::addWarpedPatches(const Matrix& image, const ObjectBox& b
   imgWarpR.writeToPGM(filenameR);
   ++x;
   */
-  
-  
+
+
   imgWarpL.rescale(ivPatchSize, ivPatchSize);
   imgWarpR.rescale(ivPatchSize, ivPatchSize);
   addPatch(imgWarpL, box.objectId, pos);
   addPatch(imgWarpR, box.objectId, pos);
   op.push_back(imgWarpL);
   op.push_back(imgWarpR);
-  
+
   for (int i = 0; i < ws.num_warps; ++i)
   {
     float angle = (PI / 180) * ws.angle * randFloat(-0.5, 0.5);
-    float scale = 1 - ws.scale * randFloat(-0.5, 0.5);  
+    float scale = 1 - ws.scale * randFloat(-0.5, 0.5);
     Matrix warpMatrix = Matrix::createWarpMatrix(angle, scale);
-    
+
     float shX = ws.shift * box.width * randFloat(-0.5, 0.5);
     float shY = ws.shift * box.height * randFloat(-0.5, 0.5);
     ObjectBox shiftedBox = {box.x + shX, box.y + shY, box.width, box.height};
-    
+
     Matrix warped = image.affineWarp(warpMatrix, shiftedBox, true);
-    
+
     /*char filename[255];
     sprintf(filename, "output/warped2_pic%03d_obj%d_%d.pgm", x, box.objectId, i);
     warped.writeToPGM(filename);*/
-    
+
     warped.rescale(ivPatchSize,ivPatchSize);
     addPatch(warped, box.objectId, pos);
   }

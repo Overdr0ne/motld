@@ -1,20 +1,20 @@
 /* Copyright (C) 2012 Christian Lutz, Thorsten Engesser
- * 
+ *
  * This file is part of motld
- * 
+ *
  * Some parts of this implementation are based
  * on materials to a lecture by Thomas Brox
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -116,7 +116,7 @@ public:
   void writeToPGM(const char *filename) const;
   /// Returns a patch around the central point using bilinear interpolation
   Matrix getRectSubPix(float centerx, float centery, int width, int height) const;
- 
+
   /// Changes the size of the matrix, data will be lost
   void setSize(int width, int height);
   /// Downsamples image to half of its size (result will be in result)
@@ -124,14 +124,14 @@ public:
   /// Downsamples the matrix
   void downsample(int newWidth, int newHeight);
   /// Downsamples the matrix using bilinear interpolation
-  void downsampleBilinear(int newWidth, int newHeight);  
+  void downsampleBilinear(int newWidth, int newHeight);
   /// Upsamples the matrix
   void upsample(int newWidth, int newHeight);
   /// Upsamples the matrix using bilinear interpolation
   void upsampleBilinear(int newWidth, int newHeight);
   /// Scales the matrix (includes upsampling and downsampling)
   void rescale(int newWidth, int newHeight);
-  
+
   /// Fills the matrix with the value value (see also operator =)
   void fill(const float value);
   /// Copies a rectangular part from the matrix into result, the size of result will be adjusted
@@ -156,7 +156,7 @@ public:
   void drawHistogram(const float * histogram, int x, int y, int value = 255, int nbins = 7, int psize = 15);
   /// Prints a number at position (x,y)
   void drawNumber(int x, int y, int n, int value = 255);
-    
+
   /// Gives full access to matrix values
   inline float& operator()(const int ax, const int ay) const;
   /// Fills the matrix with the value value (equivalent to fill())
@@ -180,7 +180,7 @@ public:
   inline int size() const;
   /// Gives access to the internal data representation
   inline float* data() const;
-  
+
   /// Performs an affine warping of an image section
   Matrix affineWarp(const Matrix & t, const ObjectBox & b, const bool & preservear) const;
   /// Creates a warp matrix for scaling / roatating
@@ -189,7 +189,7 @@ public:
   float* createSummedAreaTable() const;
   /// Creates an Integral Image and an Integral Image of squared values
   float** createSummedAreaTable2() const;
-  
+
 protected:
   int ivWidth, ivHeight;
   float *ivData;
@@ -206,13 +206,13 @@ void writePPM(const char* filename, const Matrix& rMatrix, const Matrix& gMatrix
 
 /**************************************************************************************************
  * IMPLEMENTATION                                                                                 *
- **************************************************************************************************/ 
+ **************************************************************************************************/
 
 inline Matrix::Matrix()
 {
 
 
-  ivData = NULL; 
+  ivData = NULL;
   ivWidth = ivHeight = 0;
 }
 
@@ -256,7 +256,7 @@ void Matrix::copyFromCharArray(unsigned char * source)
     ivData[i] = (float)source[i];
 }
 
-void Matrix::copyFromFloatArray(const float * const source, int srcwidth, int srcheight, 
+void Matrix::copyFromFloatArray(const float * const source, int srcwidth, int srcheight,
                                               int x, int y, int width, int height)
 {
   delete [] ivData;
@@ -276,7 +276,7 @@ void Matrix::copyFromFloatArray(float * source, int srcwidth, int width, int hei
     memcpy(ivData + dy * width, source + dy * srcwidth, width * sizeof(float));
 }
 
-void Matrix::fromRGB(const Matrix& rMatrix, const Matrix& gMatrix, const Matrix& bMatrix) 
+void Matrix::fromRGB(const Matrix& rMatrix, const Matrix& gMatrix, const Matrix& bMatrix)
 {
   //delete [] ivData;
   int wholeSize = ivWidth*ivHeight;
@@ -306,8 +306,8 @@ void Matrix::derivativeX(Matrix& result) const
   {
     result(0,y) = ivData[1 + y*ivWidth] - ivData[y*ivWidth];
      for(int x = 1; x < ivWidth-1; ++x)
-       result(x,y) = (ivData[x+1 +y*ivWidth] - ivData[x-1 +y*ivWidth]); // * 0.5;   
-    result(ivWidth-1,y) = ivData[ivWidth-1 + y*ivWidth] - ivData[ivWidth-2 + y*ivWidth];   
+       result(x,y) = (ivData[x+1 +y*ivWidth] - ivData[x-1 +y*ivWidth]); // * 0.5;
+    result(ivWidth-1,y) = ivData[ivWidth-1 + y*ivWidth] - ivData[ivWidth-2 + y*ivWidth];
   }
 }
 
@@ -317,11 +317,11 @@ void Matrix::derivativeY(Matrix& result) const
   for(int x = 0; x < ivWidth; ++x)
   {
     result(x,0) = ivData[x + ivWidth] - ivData[x];
-    result(x,ivHeight-1) = ivData[x + (ivHeight-1)*ivWidth] - ivData[x + (ivHeight-2)*ivWidth];    
+    result(x,ivHeight-1) = ivData[x + (ivHeight-1)*ivWidth] - ivData[x + (ivHeight-2)*ivWidth];
   }
   for(int y = 1; y < ivHeight-1; ++y)
     for(int x = 0; x < ivWidth; ++x)
-       result(x,y) = (ivData[x + (y+1)*ivWidth] - ivData[x + (y-1)*ivWidth]); // * 0.5;   
+       result(x,y) = (ivData[x + (y+1)*ivWidth] - ivData[x + (y-1)*ivWidth]); // * 0.5;
 }
 
 /// @details Applied filter: [-3,0,3; -10,0,10; -3,0,3] = [-1,0,1] x [3;10;3]
@@ -335,11 +335,11 @@ void Matrix::scharrDerivativeX(Matrix& result) const
   for(int x=0; x<ivWidth; ++x)
   {
     result(x,0) = 13 * tmp(x,0) + 3 * tmp(x,1);
-    result(x,ivHeight-1) = 13 * tmp(x,ivHeight-1) + 3 * tmp(x,ivHeight-2);   
+    result(x,ivHeight-1) = 13 * tmp(x,ivHeight-1) + 3 * tmp(x,ivHeight-2);
   }
   for(int y = 1; y < ivHeight-1; ++y)
     for(int x = 0; x < ivWidth; ++x)
-       result(x,y) = 3 * (tmp(x,y-1) + tmp(x,y+1)) + 10 * tmp(x,y);   
+       result(x,y) = 3 * (tmp(x,y-1) + tmp(x,y+1)) + 10 * tmp(x,y);
 
 }
 
@@ -354,8 +354,8 @@ void Matrix::scharrDerivativeY(Matrix& result) const
   {
     result(0,y) = 13 * tmp(0,y) + 3 * tmp(1,y);
      for(int x = 1; x < ivWidth-1; ++x)
-       result(x,y) = 3 * (tmp(x-1,y) + tmp(x+1,y)) + 10 * tmp(x,y);   
-    result(ivWidth-1,y) = 13 * tmp(ivWidth-1,y) + 3 * tmp(ivWidth-2,y);   
+       result(x,y) = 3 * (tmp(x-1,y) + tmp(x+1,y)) + 10 * tmp(x,y);
+    result(ivWidth-1,y) = 13 * tmp(ivWidth-1,y) + 3 * tmp(ivWidth-2,y);
   }
 }
 
@@ -370,9 +370,9 @@ void Matrix::sobelDerivativeX(Matrix& result) const
   for(int x=0; x<ivWidth; ++x)
   {
     result(x,0) = 3 * tmp(x,0) + 1 * tmp(x,1);
-    result(x,ivHeight-1) = 3 * tmp(x,ivHeight-1) + 1 * tmp(x,ivHeight-2);   
+    result(x,ivHeight-1) = 3 * tmp(x,ivHeight-1) + 1 * tmp(x,ivHeight-2);
      for(int y = 1; y < ivHeight-1; ++y)
-       result(x,y) = 1 * (tmp(x,y-1) + tmp(x,y+1)) + 2 * tmp(x,y);   
+       result(x,y) = 1 * (tmp(x,y-1) + tmp(x,y+1)) + 2 * tmp(x,y);
   }
 }
 
@@ -386,9 +386,9 @@ void Matrix::sobelDerivativeY(Matrix& result) const
   for(int y=0; y<ivHeight; ++y)
   {
     result(0,y) = 3 * tmp(0,y) + 1 * tmp(1,y);
-    result(ivWidth-1,y) = 3 * tmp(ivWidth-1,y) + 1 * tmp(ivWidth-2,y);   
+    result(ivWidth-1,y) = 3 * tmp(ivWidth-1,y) + 1 * tmp(ivWidth-2,y);
      for(int x = 1; x < ivWidth-1; ++x)
-       result(x,y) = 1 * (tmp(x-1,y) + tmp(x+1,y)) + 2 * tmp(x,y);   
+       result(x,y) = 1 * (tmp(x-1,y) + tmp(x+1,y)) + 2 * tmp(x,y);
   }
 }
 
@@ -411,8 +411,8 @@ void Matrix::gaussianSmooth(const float sigma, const int filterSize)
   // normalize weights
   for (int i = 0; i < fSize; i++)
     weights[i] *= 1.0 / sumWeights;
-    
-  // apply filter in x-direction  
+
+  // apply filter in x-direction
   for (int x = 0; x < ivWidth; x++)
     for (int i = 0; i < fSize; i++)
     {
@@ -420,8 +420,8 @@ void Matrix::gaussianSmooth(const float sigma, const int filterSize)
       xtemp = xtemp < 0 ? 0 : (xtemp >= ivWidth ? ivWidth-1 : xtemp);
       for (int y = 0; y < ivHeight; y++)
         temp(x,y) += ivData[xtemp + y*ivWidth] * weights[i];
-    }      
-  // apply filter in y-direction  
+    }
+  // apply filter in y-direction
   fill(0);
   for (int y = 0; y < ivHeight; y++)
     for (int i = 0; i < fSize; i++)
@@ -436,8 +436,8 @@ void Matrix::gaussianSmooth(const float sigma, const int filterSize)
 
 /// @details Applies the filter [1/4 1/2 1/4]^2
 //maybe use [1/16 1/4 3/8 1/4 1/16]^2 instead
-void Matrix::halfSizeImage(Matrix& result) const 
-{  
+void Matrix::halfSizeImage(Matrix& result) const
+{
   //downsample in x-direction
   Matrix temp((ivWidth+1)>>1, ivHeight);
   for (int y = 0; y < ivHeight; ++y)
@@ -447,9 +447,9 @@ void Matrix::halfSizeImage(Matrix& result) const
       temp(ivWidth>>1,y) = 0.75 * ivData[ivWidth-1 + y*ivWidth] + 0.25 * ivData[ivWidth-2 + y*ivWidth];
      for (int x = 1; x < (ivWidth>>1); ++x)
        temp(x,y) = 0.5 * ivData[(x<<1) + y*ivWidth] + 0.25 * (ivData[(x<<1)-1 + y*ivWidth] + ivData[(x<<1)+1 + y*ivWidth]);
-  }  
+  }
   //downsample in y-direction
-  result.setSize((ivWidth+1)>>1, (ivHeight+1)>>1);  
+  result.setSize((ivWidth+1)>>1, (ivHeight+1)>>1);
   for (int x = 0; x < result.ivWidth; ++x)
   {
     result(x,0) = 0.75 * temp(x,0) + 0.25 * temp(x,1);
@@ -495,10 +495,10 @@ Matrix Matrix::getRectSubPix(float centerx, float centery, int width, int height
         result(x,y) = a11*operator()(srcx+x,srcy+y)
                     + a12*operator()(srcx+x+1,srcy+y)
                     + a21*operator()(srcx+x,srcy+y+1)
-                    + a22*operator()(srcx+x+1,srcy+y+1);    
+                    + a22*operator()(srcx+x+1,srcy+y+1);
       }
     }
-  }else{ 
+  }else{
     float avgValue = this->avg();
     for(int y=0; y<height; ++y)
     {
@@ -510,13 +510,13 @@ Matrix Matrix::getRectSubPix(float centerx, float centery, int width, int height
           result(x,y) = a11*operator()(srcx+x,srcy+y)
                       + a12*operator()(srcx+x+1,srcy+y)
                       + a21*operator()(srcx+x,srcy+y+1)
-                      + a22*operator()(srcx+x+1,srcy+y+1);  
+                      + a22*operator()(srcx+x+1,srcy+y+1);
         /*
-        // copy from border (not very efficient)  
+        // copy from border (not very efficient)
         result(x,y) = a11*operator()(MAX(0,MIN(ivWidth-1,srcx+x)),MAX(0,MIN(ivHeight-1,srcy+y)))
                     + a12*operator()(MAX(0,MIN(ivWidth-1,srcx+x+1)),MAX(0,MIN(ivHeight-1,srcy+y)))
                     + a21*operator()(MAX(0,MIN(ivWidth-1,srcx+x)),MAX(0,MIN(ivHeight-1,srcy+y+1)))
-                    + a22*operator()(MAX(0,MIN(ivWidth-1,srcx+x+1)),MAX(0,MIN(ivHeight-1,srcy+y+1)));  */  
+                    + a22*operator()(MAX(0,MIN(ivWidth-1,srcx+x+1)),MAX(0,MIN(ivHeight-1,srcy+y+1)));  */
       }
     }
   }
@@ -527,7 +527,7 @@ void Matrix::setSize(int width, int height)
 {
   if (ivWidth == width && ivHeight == height)
     return;
-  if (ivData != 0) 
+  if (ivData != 0)
     delete[] ivData;
   ivData = new float[width*height];
   ivWidth = width;
@@ -787,7 +787,7 @@ void Matrix::upsampleBilinear(int newWidth, int newHeight)
 void Matrix::rescale(int newWidth, int newHeight)
 {
   if (ivWidth >= newWidth) {
-    if (ivHeight >= newHeight) 
+    if (ivHeight >= newHeight)
       downsample(newWidth,newHeight);
     else {
       downsample(newWidth,ivHeight);
@@ -799,7 +799,7 @@ void Matrix::rescale(int newWidth, int newHeight)
       downsample(ivWidth,newHeight);
       upsample(newWidth,newHeight);
     }
-    else 
+    else
       upsample(newWidth,newHeight);
   }
 }
@@ -826,9 +826,9 @@ void Matrix::clip(float aMin, float aMax)
 {
   int aSize = size();
   for (int i = 0; i < aSize; i++)
-    if (ivData[i] < aMin) 
+    if (ivData[i] < aMin)
       ivData[i] = aMin;
-    else if (ivData[i] > aMax) 
+    else if (ivData[i] > aMax)
       ivData[i] = aMax;
 }
 
@@ -836,14 +836,14 @@ void Matrix::inv3()
 {
   if (ivWidth != ivHeight || ivWidth != 3) {
     std::cerr << "cannot invert non 3x3 matrices!" << std::endl;
-    return;  
+    return;
   }
-  
+
   float a,b,c,d,e,f,g,h,k;
   a = ivData[0]; b = ivData[3]; c = ivData[6];
   d = ivData[1]; e = ivData[4]; f = ivData[7];
   g = ivData[2]; h = ivData[5]; k = ivData[8];
-  
+
   float A = e*k - f*h;
   float B = f*g - d*k;
   float C = d*h - e*g;
@@ -853,9 +853,9 @@ void Matrix::inv3()
   float G = b*f - c*e;
   float H = c*d - a*f;
   float K = a*e - b*d;
-  
+
   float det = a*A + b*B + c*C;
-  
+
   ivData[0] = A/det; ivData[3] = D/det; ivData[6] = G/det;
   ivData[1] = B/det; ivData[4] = E/det; ivData[7] = H/det;
   ivData[2] = C/det; ivData[5] = F/det; ivData[8] = K/det;
@@ -865,55 +865,55 @@ void Matrix::inv3()
 void Matrix::drawLine(int x1, int y1, int x2, int y2, float value)
 {
   // vertical line
-  if (x1 == x2) 
+  if (x1 == x2)
   {
-    if (x1 < 0 || x1 >= ivWidth)   
+    if (x1 < 0 || x1 >= ivWidth)
       return;
     int x = x1;
-    if (y1 < y2) 
+    if (y1 < y2)
     {
       for (int y = y1; y <= y2; y++)
-        if (y >= 0 && y < ivHeight) 
+        if (y >= 0 && y < ivHeight)
           ivData[y*ivWidth + x] = value;
     } else {
       for (int y = y1; y >= y2; y--)
-        if (y >= 0 && y < ivHeight) 
+        if (y >= 0 && y < ivHeight)
           ivData[y*ivWidth + x] = value;
     }
     return;
   }
   // horizontal line
-  if (y1 == y2) 
+  if (y1 == y2)
   {
     if (y1 < 0 || y1 >= ivHeight)
       return;
     int y = y1;
-    if (x1 < x2) 
+    if (x1 < x2)
     {
       for (int x = x1; x <= x2; x++)
         if (x >= 0 && x < ivWidth)
           ivData[y*ivWidth + x] = value;
     } else {
       for (int x = x1; x >= x2; x--)
-        if (x >= 0 && x < ivWidth) 
+        if (x >= 0 && x < ivWidth)
           ivData[y*ivWidth + x] = value;
     }
     return;
   }
   float m = float(y1 - y2) / float(x1 - x2);
   float invm = 1.0/m;
-  if (fabs(m) > 1.0) 
+  if (fabs(m) > 1.0)
   {
-    if (y2 > y1) 
+    if (y2 > y1)
     {
-      for (int y = y1; y <= y2; y++) 
+      for (int y = y1; y <= y2; y++)
       {
         int x = (int)(0.5 + x1 + (y-y1)*invm);
         if (x >= 0 && x < ivWidth && y >= 0 && y < ivHeight)
           ivData[y*ivWidth + x] = value;
       }
     } else {
-      for (int y = y1; y >= y2; y--) 
+      for (int y = y1; y >= y2; y--)
       {
         int x = (int)(0.5 + x1 + (y-y1)*invm);
         if (x >= 0 && x < ivWidth && y >= 0 && y < ivHeight)
@@ -921,9 +921,9 @@ void Matrix::drawLine(int x1, int y1, int x2, int y2, float value)
       }
     }
   } else {
-    if (x2 > x1) 
+    if (x2 > x1)
     {
-      for (int x = x1; x <= x2; x++) 
+      for (int x = x1; x <= x2; x++)
       {
         int y = (int)(0.5 + y1 + (x-x1)*m);
         if (x >= 0 && x < ivWidth && y >= 0 && y < ivHeight)
@@ -1044,7 +1044,7 @@ void Matrix::drawNumber(int x, int y, int n, int value)
       {
         int tmpx = x + tx + (i%4), tmpy = y + (i>>2);
         if (tmpx >= 0 && tmpy >= 0 && tmpx < ivWidth && tmpy < ivHeight)
-          (*this)(tmpx, tmpy) = value;   
+          (*this)(tmpx, tmpy) = value;
       }
     tx -= 5;
     a = a/10;
@@ -1054,7 +1054,7 @@ void Matrix::drawNumber(int x, int y, int n, int value)
     for (int i = 1; i < 4; i++){
       int tmpx = x + tx + i, tmpy = y + 3;
       if (tmpx >= 0 && tmpy >= 0 && tmpx < ivWidth && tmpy < ivHeight)
-        (*this)(tmpx, tmpy) = value;   
+        (*this)(tmpx, tmpy) = value;
     }
 }
 
@@ -1148,7 +1148,7 @@ Matrix operator*(const Matrix& m1, const Matrix& m2) {
     std::cerr << "cannot multiply incompatible matrices!" << std::endl;
     return Matrix();
   }
-    
+
   Matrix result(m2.xSize(),m1.ySize(),0);
   for (int y = 0; y < result.ySize(); y++)
     for (int x = 0; x < result.xSize(); x++)
@@ -1181,7 +1181,7 @@ void writePPM(const char* filename, const Matrix& rMatrix, const Matrix& gMatrix
  * ---------------------------------------------------------*/
 
 inline float* Matrix::createSummedAreaTable() const
-{  
+{
   int width = ivWidth + 1;
   int height = ivHeight + 1;
 
@@ -1206,7 +1206,7 @@ inline float* Matrix::createSummedAreaTable() const
 }
 
 inline float** Matrix::createSummedAreaTable2() const
-{  
+{
   int width = ivWidth + 1;
   int height = ivHeight + 1;
 
@@ -1279,46 +1279,46 @@ inline Matrix Matrix::affineWarp(const Matrix& t, const ObjectBox& b, const bool
 {
   float widthHalf = b.width / 2;
   float heightHalf = b.height / 2;
- 
+
   // object space transformation
   Matrix ost(3,3);
   ost.ivData[0] = 1; ost.ivData[1] = 0; ost.ivData[2] = b.x + widthHalf - 0.5;
   ost.ivData[3] = 0; ost.ivData[4] = 1; ost.ivData[5] = b.y + heightHalf - 0.5;
   ost.ivData[6] = 0; ost.ivData[7] = 0; ost.ivData[8] = 1;
-  
+
   Matrix ostinv = ost;
   ostinv.ivData[2] = - ostinv.ivData[2];
   ostinv.ivData[5] = - ostinv.ivData[5];
   Matrix tinv = t; tinv.inv3();
-  
+
   Matrix trans = ost * tinv * ostinv;
-  
+
   Matrix result(b.width, b.height);
   for (int dx = 0; dx <= b.width-1; ++dx)
   {
     for (int dy = 0; dy <= b.height-1; ++dy)
-    { 
+    {
       Matrix v(1,3);
       float x = b.x + dx;
       float y = b.y + dy;
       v.ivData[0] = x; v.ivData[1] = y; v.ivData[2] = 1;
       v = trans * v;
-      
+
       int x1 = MAX(0,MIN(ivWidth-1,floor(v.ivData[0]))); int x2 = MAX(0,MIN(ivWidth-1,ceil(v.ivData[0])));
       int y1 = MAX(0,MIN(ivHeight-1,floor(v.ivData[1]))); int y2 = MAX(0,MIN(ivHeight-1,ceil(v.ivData[1])));
       double dx1 = v.ivData[0] - x1; double dy1 = v.ivData[1] - y1;
-      
+
       result(dx, dy) =
                (1-dx1) * ((1-dy1) * (*this)(x1, y1) + dy1 * (*this)(x1,y2))
                  + dx1 * ((1-dy1) * (*this)(x2, y1) + dy1 * (*this)(x2,y2));
     }
-  }  
-  return result; 
+  }
+  return result;
 }
 
 inline Matrix Matrix::createWarpMatrix(const float& angle, const float& scale)
 {
-  Matrix scm(3,3); 
+  Matrix scm(3,3);
   scm(0, 0) = scale; scm(1, 0) =     0; scm(2, 0) = 0;
   scm(0, 1) =     0; scm(1, 1) = scale; scm(2, 1) = 0;
   scm(0, 2) =     0; scm(1, 2) =     0; scm(2, 2) = 1;
@@ -1357,7 +1357,7 @@ inline float rectangleOverlap( float minx1, float miny1,
 
 inline float rectangleOverlap(const ObjectBox& a, const ObjectBox& b)
 {
-  return rectangleOverlap(a.x, a.y, a.x+a.width, a.y+a.height, 
+  return rectangleOverlap(a.x, a.y, a.x+a.width, a.y+a.height,
                           b.x, b.y, b.x+b.width, b.y+b.height );
 }
 

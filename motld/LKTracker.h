@@ -1,24 +1,24 @@
 /* Copyright (C) 2012 Christian Lutz, Thorsten Engesser
- * 
+ *
  * This file is part of motld
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef LKTracker_H
 #define LKTracker_H
-  
+
 #include "Matrix.h"
 #include <vector>
 #include <algorithm>
@@ -39,14 +39,14 @@
 /// absolute padding (used for cornerness points only)
 #define GRID_MARGIN 3
 #define KERNEL_SIZE ((KERNEL_WIDTH*2+1)*(KERNEL_WIDTH*2+1))
-  
+
 /** @brief This class contains the "short term tracking" part of the algorithm.
  */
 class LKTracker
 {
 public:
   /// Constructor
-  LKTracker(int width, int height) : ivWidth(width), ivHeight(height), 
+  LKTracker(int width, int height) : ivWidth(width), ivHeight(height),
       ivPrevPyramid(NULL), ivIndex(1) {};
   /// Destructor
   ~LKTracker() {delete ivPrevPyramid;};
@@ -56,15 +56,15 @@ public:
   void initFirstFrame(const Matrix& img);
   /** @brief Computes the optical flow for each object
    *  @param bbox List of current object boxes, they are replaced with the new boxes
-   *  @param isDefined Must have the same size as @b bbox. True for each object that is 
+   *  @param isDefined Must have the same size as @b bbox. True for each object that is
    *    currently defined and should be tracked. Is set to false if tracking failed.
    */
-  void processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbox, std::vector<bool>& isDefined); 
+  void processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbox, std::vector<bool>& isDefined);
   /// An adapter for the single object case
-  bool processFrame(const Matrix& curImage, ObjectBox& bbox, bool dotracking = true); 
+  bool processFrame(const Matrix& curImage, ObjectBox& bbox, bool dotracking = true);
   /// A list of points [x0,y0,...,xn,yn] that where considered as inliers in the last iteration
   const std::vector<int> * getDebugPoints() const { return &ivDebugPoints; };
-  
+
 private:
   /// Internal representation for an image pyramid
   struct LKPyramid
@@ -74,7 +74,7 @@ private:
     LKPyramid(int nLevels){
       I = std::vector<Matrix>(nLevels);
       Ix = std::vector<Matrix>(nLevels);
-      Iy = std::vector<Matrix>(nLevels); 
+      Iy = std::vector<Matrix>(nLevels);
     };
   };
   /// Simple representation for 2D (sub pixel) image points
@@ -95,11 +95,11 @@ private:
     *    {\sqrt{\sum_{x,y}(A(x,y)-\bar{A})^2\sum_{x,y}(B(x,y)-\bar{B})^2}} @f]
    */
   inline double NCC(const Matrix& aMatrix, const Matrix& bMatrix) const;
-  /** Computes optical flow for each tracking point. 
-   * @details Based on the technical report "Pyramidal Implementation of the 
+  /** Computes optical flow for each tracking point.
+   * @details Based on the technical report "Pyramidal Implementation of the
    *  Lucas Kanade Feature Tracker: Description of the algorithm" by Jean-Yves Bouguet */
-  inline void pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *curPyramid, 
-                        const Point2D *prevPts, Point2D *nextPts, 
+  inline void pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *curPyramid,
+                        const Point2D *prevPts, Point2D *nextPts,
                         char *status, int count) const;
 };
 
@@ -107,7 +107,7 @@ private:
 
 /**************************************************************************************************
  * IMPLEMENTATION                                                                                 *
- **************************************************************************************************/ 
+ **************************************************************************************************/
 void LKTracker::initFirstFrame(unsigned char * img)
 {
   Matrix curImage(ivWidth, ivHeight);
@@ -128,7 +128,7 @@ void LKTracker::initFirstFrame(const Matrix& img)
     char filename[255];
     sprintf(filename, "output/img%05d-%d.ppm", 0, i);
     ivPrevPyramid->I[i].writeToPGM(filename);
-    #endif    
+    #endif
   }
   #if DEBUG
   std::cout << "#1 LKTracker: initialized, image size = (" << img.xSize() << "," << img.ySize() << ")" << std::endl;
@@ -164,9 +164,9 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
     char filename[255];
     sprintf(filename, "output/img%05d-%d.ppm", ivIndex, i);
     curPyramid->I[i].writeToPGM(filename);
-    #endif  
+    #endif
   }
-  
+
   #pragma omp parallel sections
   {
     #pragma omp section
@@ -182,11 +182,11 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
         curPyramid->I[i].scharrDerivativeY(curPyramid->Iy[i]);
     }
   }
-  
+
   #if DEBUG > 1
   Matrix debugFlow(ivWidth, ivHeight, 0);
   #endif
-      
+
   // loop over all object boxes
   for (int obj = 0; obj < nobs; obj++)
   {
@@ -195,9 +195,9 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
     #endif
     if (isDefined[obj])
     {
-      float oldwidth = bbox[obj].width, 
+      float oldwidth = bbox[obj].width,
             oldheight = bbox[obj].height,
-            oldcenterx = bbox[obj].x + oldwidth*0.5, 
+            oldcenterx = bbox[obj].x + oldwidth*0.5,
             oldcentery = bbox[obj].y + oldheight*0.5;
 
       Point2D points0[N_CORNERNESS_POINTS + GRID_SIZE_X*GRID_SIZE_Y]; // points to be tracked
@@ -207,9 +207,9 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
       float fb[N_CORNERNESS_POINTS + GRID_SIZE_X*GRID_SIZE_Y];
       float ncc[N_CORNERNESS_POINTS + GRID_SIZE_X*GRID_SIZE_Y];
       int count = 0;
-  
+
       // take points on a regular grid
-      float stepX = oldwidth * (1 - 2*GRID_PADDING) / (GRID_SIZE_X-1), 
+      float stepX = oldwidth * (1 - 2*GRID_PADDING) / (GRID_SIZE_X-1),
             stepY = oldheight * (1 - 2*GRID_PADDING) / (GRID_SIZE_Y-1);
       for (int y = 0; y < GRID_SIZE_Y; ++y)
         for (int x = 0; x < GRID_SIZE_X; ++x)
@@ -219,15 +219,15 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
           status[count] = 1;
           count++;
         }
-    
+
       // ALTERNATIVE (or supplementary): compute interesting points (with high minimum eigen values) within bounding box
       #if N_CORNERNESS_POINTS > 0
-      int xstart = std::max(0, (int)(bbox[obj].x)), 
+      int xstart = std::max(0, (int)(bbox[obj].x)),
           xend = std::min(ivWidth, (int)(bbox[obj].x + oldwidth + 1)),
           ystart = std::max(0, (int)(bbox[obj].y)),
           yend = std::min(ivHeight, (int)(bbox[obj].y + oldheight + 1)),
           xsize = xend - xstart,
-          ysize = yend - ystart;      
+          ysize = yend - ystart;
       Matrix Ix2 (xsize, ysize);
       Matrix IxIy(xsize, ysize);
       Matrix Iy2 (xsize, ysize);
@@ -238,16 +238,16 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
           Ix2(x-xstart,y-ystart)  = ivPrevPyramid->Ix[0](x,y) * ivPrevPyramid->Ix[0](x,y);
           IxIy(x-xstart,y-ystart) = ivPrevPyramid->Ix[0](x,y) * ivPrevPyramid->Iy[0](x,y);
           Iy2(x-xstart,y-ystart)  = ivPrevPyramid->Iy[0](x,y) * ivPrevPyramid->Iy[0](x,y);
-        }      
+        }
       Ix2.gaussianSmooth(2.0, 3);
       IxIy.gaussianSmooth(2.0, 3);
       Iy2.gaussianSmooth(2.0, 3);
-      
+
       std::vector<float> cns;
       for (int y = GRID_MARGIN; y < ysize - GRID_MARGIN; y++)
         for (int x = GRID_MARGIN; x < xsize - GRID_MARGIN; x++)
         {
-          cornerness(x,y) = (Ix2(x,y) + Iy2(x,y)) / 2.0 
+          cornerness(x,y) = (Ix2(x,y) + Iy2(x,y)) / 2.0
                               - sqrt(((Ix2(x,y) + Iy2(x,y)) / 2.0) * ((Ix2(x,y) + Iy2(x,y)) / 2.0)
                                           - Ix2(x,y) * Iy2(x,y) + IxIy(x,y)*IxIy(x,y));
           if (cornerness(x,y) > 1.0)
@@ -269,9 +269,9 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
             status[count] = 1;
             count++;
           }
-        }      
+        }
       #endif //N_CORNERNESS_POINTS > 0
-  
+
       // Track points forward
       pyramidLK(ivPrevPyramid, curPyramid, points0, points1, status, count);
 
@@ -282,10 +282,10 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
           ++nfwd;
       std::cout << "\t#fwd=" << nfwd;
       #endif
-  
+
       // Track remaining points backward
       pyramidLK(curPyramid, ivPrevPyramid, points1, points2, status, count);
-  
+
       // Compute FB-error and NCC
       std::vector<float> fbs, nccs;
       int nbwd = 0;
@@ -294,7 +294,7 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
       {
         if (status[i] > 0)
         {
-          fb[i] = sqrt((points2[i].x - points0[i].x) * (points2[i].x - points0[i].x) 
+          fb[i] = sqrt((points2[i].x - points0[i].x) * (points2[i].x - points0[i].x)
                      + (points2[i].y - points0[i].y) * (points2[i].y - points0[i].y));
           //#pragma omp critical
           fbs.push_back(fb[i]);
@@ -306,15 +306,15 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
           ++nbwd;
         }
       }
-  
+
       float medFB = median(&fbs),
             medNCC = median(&nccs);
-  
+
       #if DEBUG > 1
       std::cout << ", #bwd=" << nbwd;
       std::cout << "  \tmedFB=" << medFB << "\tmedNCC=" << medNCC;
       #endif
-  
+
       //#pragma omp parallel for
       for (int i = 0; i < count; ++i)
       {
@@ -322,15 +322,15 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
         {
           if (fb[i] > medFB || fb[i] > 8  || ncc[i] < medNCC)
             status[i] = 0;
-          else 
+          else
           //#pragma omp critical
           {
-            ivDebugPoints.push_back(round(points1[i].x)); 
-            ivDebugPoints.push_back(round(points1[i].y)); 
+            ivDebugPoints.push_back(round(points1[i].x));
+            ivDebugPoints.push_back(round(points1[i].y));
           }
         }
       }
-          
+
       // Compute median flow
       std::vector<float> deltax;
       std::vector<float> deltay;
@@ -359,8 +359,8 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
       //else
 
       float dx = median(&deltax),
-            dy = median(&deltay);  
-      
+            dy = median(&deltay);
+
       // Remove outliers
       /*
       for (int i = 0; i < count; ++i)
@@ -372,7 +372,7 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
             num--;
           }
       */
-  
+
       // Resize bounding box (compute median elongation factor)
       float s = 1;
       if (num >= 16){
@@ -400,7 +400,7 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
       //delete[] points0; delete[] points1; delete[] points2;
       //delete[] status; delete[] fb; delete[] ncc;
 
-      float  centerx = oldcenterx + dx, 
+      float  centerx = oldcenterx + dx,
             centery = oldcentery + dy;
 
       bbox[obj].x = (centerx - s * oldwidth * 0.5);
@@ -408,41 +408,41 @@ void LKTracker::processFrame(const Matrix& curImage, std::vector<ObjectBox>& bbo
       bbox[obj].width  = s * oldwidth;
       bbox[obj].height = s * oldheight;
       #if DEBUG
-      std::cout << "n = " << num 
+      std::cout << "n = " << num
         << ", new BB: (" << round(bbox[obj].x) << "," << round(bbox[obj].y) << ", "
         << round(bbox[obj].width) << "," << round(bbox[obj].height) << ")";
         //<< ")\ts=" << s << std::endl;
-      #endif  
+      #endif
     }else{
       #if DEBUG
       std::cout << "not defined";
       #endif
     }
   } // end for(obj)
-  
+
   #if DEBUG > 1
   char filename[255];
   sprintf(filename, "output/flow%05d.ppm", ivIndex);
   writePPM(filename, ivPrevPyramid->I[0], curImage, debugFlow);
   #endif
-  
+
   delete ivPrevPyramid;
   ivPrevPyramid = curPyramid;
   ++ivIndex;
 }
- 
-inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *curPyramid, 
-                          const Point2D *prevPts, Point2D *nextPts, 
+
+inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *curPyramid,
+                          const Point2D *prevPts, Point2D *nextPts,
                           char *status, int count) const
 {
   for (int l = MAX_PYRAMID_LEVEL; l >= 0; --l)
   {
-    int xSize = prevPyramid->I[l].xSize(), 
+    int xSize = prevPyramid->I[l].xSize(),
         ySize = prevPyramid->I[l].ySize();
     #if DEBUG > 2
     std::cout << "l=" << l << ", Size=(" << xSize << "," << ySize << ")" << std::endl;
     #endif
-    
+
     #pragma omp parallel for default(shared)
     for (int i = 0; i < count; i++)
     {
@@ -463,7 +463,7 @@ inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *
         #if DEBUG > 2
         std::cout << "  p=(" << px0 << "+" << pxa << ", " << py0 << "+" << pya  << ")" << std::endl;
         #endif
-        if (px < KERNEL_WIDTH || py < KERNEL_WIDTH || px >= xSize-KERNEL_WIDTH-1 
+        if (px < KERNEL_WIDTH || py < KERNEL_WIDTH || px >= xSize-KERNEL_WIDTH-1
               || py >= ySize-KERNEL_WIDTH-1)
         {
           if (l >= MAX_PYRAMID_LEVEL-1){
@@ -473,7 +473,7 @@ inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *
           }else{
             status[i] = 0;
           }
-          //continue;        
+          //continue;
         }else{ //omp parallel for does not like continues...
           // Compute components of spatial gradient Matrix G = [Gx2 Gxy; Gxy Gy2]
           float Gx2 = 0, Gxy = 0, Gy2 = 0;
@@ -487,7 +487,7 @@ inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *
               Gxy += factor * prevPyramid->Ix[l](x,y)*prevPyramid->Iy[l](x,y); //IxIy(x,y)
               Gy2 += factor * prevPyramid->Iy[l](x,y)*prevPyramid->Iy[l](x,y); //Iy2(x,y)
             }
-          }    
+          }
           double denom = Gx2*Gy2 - Gxy*Gxy;
           #if DEBUG > 2
           std::cout << "\tGx2 = " << Gx2 << "\tGxy = " << Gxy << "\tGy2 = " << Gy2 << "\tdenom = " << denom << std::endl;
@@ -495,8 +495,8 @@ inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *
           if (denom <= 1e-30)
           {
             status[i] = 0;
-            //continue;        
-          }else{          
+            //continue;
+          }else{
             //iteratively compute additional flow on this pyramid level
             for (int k = 1; k <= LK_ITERATIONS; k++)
             {
@@ -515,7 +515,7 @@ inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *
               }
               int vx0 = (int)qx - px0, vy0 = (int)qy - py0;
               float vxa = fmod(qx, 1), vya = fmod(qx, 1);
-          
+
               //compute image missmatch vector b = [bx; by]
               float bx = 0, by = 0;
               for (int x = px0 - KERNEL_WIDTH; x <= px0 + KERNEL_WIDTH; ++x)
@@ -526,12 +526,12 @@ inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *
                               + pxa * ((1-pya)*prevPyramid->I[l](x+1, y) + pya*prevPyramid->I[l](x+1, y+1))
                               - (1-vxa) * ((1-vya)*curPyramid->I[l](x+vx0, y+vy0) + vya*curPyramid->I[l](x+vx0, y+vy0+1))
                               - vxa * ((1-vya)*curPyramid->I[l](x+vx0+1, y+vy0) + vya*curPyramid->I[l](x+vx0+1, y+vy0+1));
-                  bx += dIk * ((1-pxa) * ((1-pya)*prevPyramid->Ix[l](x, y) + pya*prevPyramid->Ix[l](x, y+1)) 
-                                  + pxa * ((1-pya)*prevPyramid->Ix[l](x+1, y) + pya*prevPyramid->Ix[l](x+1, y+1))); 
-                  by += dIk * ((1-pxa) * ((1-pya)*prevPyramid->Iy[l](x, y) + pya*prevPyramid->Iy[l](x, y+1)) 
-                                  + pxa * ((1-pya)*prevPyramid->Iy[l](x+1, y) + pya*prevPyramid->Iy[l](x+1, y+1))); 
+                  bx += dIk * ((1-pxa) * ((1-pya)*prevPyramid->Ix[l](x, y) + pya*prevPyramid->Ix[l](x, y+1))
+                                  + pxa * ((1-pya)*prevPyramid->Ix[l](x+1, y) + pya*prevPyramid->Ix[l](x+1, y+1)));
+                  by += dIk * ((1-pxa) * ((1-pya)*prevPyramid->Iy[l](x, y) + pya*prevPyramid->Iy[l](x, y+1))
+                                  + pxa * ((1-pya)*prevPyramid->Iy[l](x+1, y) + pya*prevPyramid->Iy[l](x+1, y+1)));
                 }
-              }    
+              }
               float dx = (bx*Gy2 - by*Gxy) / denom,
                     dy = (by*Gx2 - bx*Gxy) / denom;
               nextPts[i].x += dx;
@@ -539,7 +539,7 @@ inline void LKTracker::pyramidLK(const LKPyramid *prevPyramid, const LKPyramid *
               #if DEBUG > 2
               std::cout << "\tf=(" << (nextPts[i].x - prevPts[i].x) << "," << (nextPts[i].y - prevPts[i].y) << ")" << std::endl;
               #endif
-                        
+
               if (fabs(dx) > 3.5 || fabs(dy) > 3.5)
               {  //remove point because of unstable drifting..
                 if (l >= 1){
@@ -566,7 +566,7 @@ inline float LKTracker::median(std::vector<float> * vec, bool compSqrt) const
   if (n == 0)
     return 0;
   if (n % 2) //odd: return (sqrt of) middle element
-  { 
+  {
     std::nth_element(vec->begin(), vec->begin() + n/2, vec->end());
     return compSqrt ? sqrt(*(vec->begin() + n/2)) : *(vec->begin() + n/2);
   }else{     //even: return average (sqrt) of the two middle elements
@@ -584,7 +584,7 @@ inline double LKTracker::NCC(const Matrix& aMatrix, const Matrix& bMatrix) const
   if (size != bMatrix.size()){
     std::cerr << "ncc called for matrices with unequal size!" << std::endl;
     return 0;
-  }    
+  }
   float aMean = aMatrix.avg(), bMean = bMatrix.avg();
   double sumA = 0, sumB = 0, sumDiff = 0;
   for (int i = 0; i < size; ++i)
@@ -598,4 +598,4 @@ inline double LKTracker::NCC(const Matrix& aMatrix, const Matrix& bMatrix) const
   return sumDiff / sqrt(sumA*sumB); //+1)/2.0;
 }
 
-#endif 
+#endif

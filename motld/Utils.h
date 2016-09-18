@@ -1,17 +1,17 @@
 /* Copyright (C) 2012 Christian Lutz, Thorsten Engesser
- * 
+ *
  * This file is part of motld
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -130,7 +130,7 @@ T* readFromPGM(const char* filename, int & xSize, int & ySize)
   FILE *flStream;
   flStream = fopen(filename,"rb");
   if (flStream == 0)
-  { 
+  {
     std::cerr << "File not found: " << filename << std::endl;
     return result;
   }
@@ -190,11 +190,11 @@ void writeToPGM(const char *filename, T *data, int xSize, int ySize) {
 /// writes from array of something into PPM file
 template <class T>
 void writeToPPM(const char * aFilename, T * data, int xSize, int ySize) {
-  
+
   T * red = data;
   T * green = red + xSize * ySize;
   T * blue = green + xSize * ySize;
-  
+
   FILE* outimage = fopen(aFilename, "wb");
   fprintf(outimage, "P6 \n");
   fprintf(outimage, "%d %d \n255\n", xSize,ySize);
@@ -204,7 +204,7 @@ void writeToPPM(const char * aFilename, T * data, int xSize, int ySize) {
     fwrite (green+p, sizeof(unsigned char), 1, outimage);
     fwrite (blue+p, sizeof(unsigned char), 1, outimage);
    }
-    
+
   fclose(outimage);
 }
 
