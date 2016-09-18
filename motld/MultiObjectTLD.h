@@ -509,9 +509,6 @@ void MultiObjectTLD::processFrame(unsigned char * img)
           ivCurrentBoxes[o].y = tmpy / tmpn;
           ivCurrentBoxes[o].width = tmpw / tmpn;
           ivCurrentBoxes[o].height = tmph / tmpn;
-          midPt.x = ivCurrentBoxes[o].x + (ivCurrentBoxes[o].width/2);
-          midPt.y = ivCurrentBoxes[o].y + (ivCurrentBoxes[o].height/2);
-          ivCurrentBoxes[o].path.push_back(midPt);
           ivCurrentPatches[o] = NNPatch(ivCurrentBoxes[o], ivCurImage, ivPatchSize,
                                   ivUseColor ? img : NULL, ivWidth, ivHeight);
           tConf[o] = ivNNClassifier.getConf(ivCurrentPatches[o], o, false);
@@ -603,6 +600,14 @@ void MultiObjectTLD::processFrame(unsigned char * img)
     << "\t" << (t_tracker + t_detector + t_nn + t_learner);
   t_file.close();
   #endif
+
+  for( std::vector<ObjectBox>::iterator boxi = ivCurrentBoxes.begin(); boxi != ivCurrentBoxes.end(); boxi++ )
+    {
+      midPt.x = boxi->x + (boxi->width/2);
+      midPt.y = boxi->y + (boxi->height/2);
+      boxi->path.push_back(midPt);
+    }
+
 }
 
 void MultiObjectTLD::clusterDetections(float threshold)
