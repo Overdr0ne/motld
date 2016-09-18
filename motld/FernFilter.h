@@ -898,7 +898,7 @@ inline void FernFilter::varianceFilter(float * image, float * sat, float * sat2,
       if (variance >= ivVarianceThreshold)
       {
         FernDetection fd;
-        ObjectBox box = {x*ss.pixw, y*ss.pixh, ss.boxw, ss.boxh, 0, boost::circular_buffer<CvPoint>(CB_LEN)};
+        ObjectBox box = {x*ss.pixw, y*ss.pixh, ss.boxw, ss.boxh};//, 0, boost::circular_buffer<CvPoint>(CB_LEN)};
         fd.imageOffset = imgPos;
         fd.box = box;
         fd.confidence = variance;
@@ -1316,7 +1316,7 @@ inline void FernFilter::addPatchWithWarps(const Matrix& image, const ObjectBox& 
   float height = image.ySize() / factY;
   
   Matrix scaled = image; scaled.rescale(round(width), round(height));  
-  ObjectBox newB = {box.x / factX, box.y / factY, (float)ivPatchSize, (float)ivPatchSize, 0, boost::circular_buffer<CvPoint>(CB_LEN)};
+  ObjectBox newB = {box.x / factX, box.y / factY, (float)ivPatchSize, (float)ivPatchSize};//, 0, boost::circular_buffer<CvPoint>(CB_LEN)};
   newB.objectId = box.objectId;
   
   Matrix pt(box.width,box.height);
@@ -1395,7 +1395,7 @@ inline void FernFilter::addWarpedPatches(const Matrix& image, const ObjectBox& b
     
     float shX = ws.shift * box.width * randFloat(-0.5, 0.5);
     float shY = ws.shift * box.height * randFloat(-0.5, 0.5);
-    ObjectBox shiftedBox = {box.x + shX, box.y + shY, box.width, box.height, 0, boost::circular_buffer<CvPoint>(CB_LEN)};
+    ObjectBox shiftedBox = {box.x + shX, box.y + shY, box.width, box.height};//, 0, boost::circular_buffer<CvPoint>(CB_LEN)};
     
     Matrix warped = image.affineWarp(warpMatrix, shiftedBox, true);
     

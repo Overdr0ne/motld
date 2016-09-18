@@ -48,7 +48,7 @@
 
 #define ENABLE_CLUSTERING 1
 
-const int STABILIZE_CNT = 5;
+const int STABILIZE_CNT = 2;
 
 /// Settings-structure that may be passed to the constructor of MultiObjectTLD
 struct MOTLDSettings
