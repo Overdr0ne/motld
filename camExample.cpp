@@ -79,6 +79,7 @@ std::clock_t c_start3;
 std::clock_t c_end3;
 // auto t_start;
 // auto t_end;
+int Ndetections = 0;
 
 typedef struct DebugInfo
 {
@@ -239,8 +240,13 @@ void* Run(cv::VideoCapture& capture)
         |cv::CASCADE_SCALE_IMAGE,
         cv::Size(30, 30) );
 
+      Ndetections = detectedFaces.size();
+
+      int sami = 0;
       for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
       {
+        std::cout << "SAM: " << sami << std::endl;
+        sami++;
         detectBox.x = r->x;
         detectBox.y = r->y;
         detectBox.width = r->width;
@@ -412,7 +418,7 @@ void writeDebug(DebugInfo dbgInfo)
   sprintf(strNObj, "#objects: %i", dbgInfo.NObjects);
 
   dbgFile.open ("dbg.dat",std::ios::ate);
-  dbgFile << dbgInfo.NObjects << std::endl;
+  dbgFile << dbgInfo.NObjects << ' ' << Ndetections << std::endl;
   dbgFile.close();
 
   cv::putText(curImage, strSide0, cv::Point(0, ivHeight/10), CV_FONT_HERSHEY_SIMPLEX, 0.5, 0);

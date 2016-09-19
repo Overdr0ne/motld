@@ -293,9 +293,8 @@ bool MultiObjectTLD::isNewObject(ObjectBox inBox)
 
   for( std::vector<ObjectBox>::const_iterator r = ivCurrentBoxes.begin(); r != ivCurrentBoxes.end(); r++ )
   {
-    if(xMid < (r->x + r->width) && xMid > r->x)
-      return false;
-    if(yMid < (r->y + r->height) && yMid > r->y)
+    if(((xMid < (r->x + r->width)) && (xMid > r->x))
+       && (((yMid < (r->y + r->height)) && (yMid > r->y))))
       return false;
   }
   return true;
