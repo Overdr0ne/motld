@@ -68,7 +68,7 @@ cv::Point gate[2];
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
 bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true, drawGateEnabled = false;
-std::string cascadePath = "/home/sam/src/opencv-3.1.0/data/haarcascades/haarcascade_frontalface_alt.xml";
+std::string cascadePath = "../haarcascades/haarcascade_frontalface_alt.xml";
 std::clock_t c_start;
 std::clock_t c_end;
 std::clock_t c_start1;
@@ -245,7 +245,6 @@ void* Run(cv::VideoCapture& capture)
       int sami = 0;
       for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
       {
-        std::cout << "SAM: " << sami << std::endl;
         sami++;
         detectBox.x = r->x;
         detectBox.y = r->y;
