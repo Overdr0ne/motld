@@ -36,6 +36,8 @@ There are some keys to customize which components are displayed:
 #include <stdio.h>
 #include <chrono>
 #include <ctime>
+#include <iostream>
+#include <fstream>
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -400,6 +402,7 @@ void drawGate()
 
 void writeDebug(DebugInfo dbgInfo)
 {
+  std::ofstream dbgFile;
   char strSide0[25];
   char strSide1[25];
   char strNObj[25];
@@ -407,6 +410,10 @@ void writeDebug(DebugInfo dbgInfo)
   sprintf(strSide0, "Side0: %i", dbgInfo.side0Cnt);
   sprintf(strSide1, "Side1: %i", dbgInfo.side1Cnt);
   sprintf(strNObj, "#objects: %i", dbgInfo.NObjects);
+
+  dbgFile.open ("dbg.dat",std::ios::ate);
+  dbgFile << dbgInfo.NObjects << std::endl;
+  dbgFile.close();
 
   cv::putText(curImage, strSide0, cv::Point(0, ivHeight/10), CV_FONT_HERSHEY_SIMPLEX, 0.5, 0);
   cv::putText(curImage, strSide1, cv::Point(ivWidth-ivHeight/3, ivHeight/10), CV_FONT_HERSHEY_SIMPLEX, 0.5, 0);
