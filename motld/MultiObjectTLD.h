@@ -226,6 +226,7 @@ void MultiObjectTLD::addObjects(std::vector<ObjectBox> obs)
     return;
   for (int i = 0; i < n; i++)
   {
+    obs[i].path = boost::circular_buffer<CvPoint>(CB_LEN);
     obs[i].objectId = ivNObjects + i;
     if (obs[i].objectId == 0)
       ivAspectRatio = obs[i].width / (float)obs[i].height;

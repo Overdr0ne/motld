@@ -242,10 +242,8 @@ void* Run(cv::VideoCapture& capture)
 
       Ndetections = detectedFaces.size();
 
-      int sami = 0;
       for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
       {
-        sami++;
         detectBox.x = r->x;
         detectBox.y = r->y;
         detectBox.width = r->width;
