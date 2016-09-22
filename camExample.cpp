@@ -128,6 +128,7 @@ void* Run(cv::VideoCapture& capture)
     HandleInput();
     drawMouseBox();
     cv::imshow("MOCTLD", curImage);
+    cv::imwrite( "./dbg.jpg", curImage );
   }
   dbgFile.close();
   capture.release();
