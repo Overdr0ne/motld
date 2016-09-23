@@ -37,6 +37,7 @@ int drawMode = 255;
 bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true, drawGateEnabled = false;
 std::string cascadePath = "../haarcascades/haarcascade_frontalface_alt.xml";
 int Ndetections = 0;
+cv::VideoCapture *capture = NULL;
 
 typedef struct DebugInfo
 {
@@ -45,8 +46,8 @@ typedef struct DebugInfo
   int side1Cnt;
 } DebugInfo;
 
-void Init(cv::VideoCapture& capture);
-void* Run(cv::VideoCapture& capture);
+void Init(cv::VideoCapture* capture);
+void* Run(cv::VideoCapture* capture);
 void* Run(void);
 void HandleInput(int interval = 1);
 void MouseHandler(int event, int x, int y, int flags, void* param);
@@ -56,34 +57,31 @@ bool isVideo = true;
 
 int main(int argc, char *argv[])
 {
-  // cv::VideoCapture capture(0);
-
-  // Init(capture);
-  // if(isVideo)
-  //   Run(capture);
-  // else
+  Init(capture);
+  if(isVideo)
+    Run(capture);
+  else
     Run();
   cv::destroyAllWindows();
   return 0;
 }
 
-void Init(cv::VideoCapture& capture)
+void Init(cv::VideoCapture *capture)
 {
-  if(!capture.isOpened()){
+  capture = new cv::VideoCapture(0);
+  if(!capture->isOpened() ||
+     capture->get(CV_CAP_PROP_FRAME_WIDTH)<=0){
     isVideo = false;
   }
   else
   {
     //propose a resolution
-    capture.set(CV_CAP_PROP_FRAME_WIDTH, RESOLUTION_X);
-    capture.set(CV_CAP_PROP_FRAME_HEIGHT, RESOLUTION_Y);
+    capture->set(CV_CAP_PROP_FRAME_WIDTH, RESOLUTION_X);
+    capture->set(CV_CAP_PROP_FRAME_HEIGHT, RESOLUTION_Y);
     //get the actual (supported) resolution
-    ivWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-    ivHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+    ivWidth = capture->get(CV_CAP_PROP_FRAME_WIDTH);
+    ivHeight = capture->get(CV_CAP_PROP_FRAME_HEIGHT);
     std::cout << "camera/video resolution: " << ivWidth << "x" << ivHeight << std::endl;
-
-    cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
-    // cv::resizeWindow("MOCTLD", ivWidth, ivHeight);
   }
   cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
   cv::setMouseCallback("MOCTLD", MouseHandler);
@@ -108,7 +106,6 @@ void* Run()
   {
     // Grab an image
     frame = cv::imread("./capture/img0.jpg");
-    std::cout << "here" << std::endl;
     cv::resize(frame,resized,cv::Size(RESOLUTION_X,RESOLUTION_Y), 0, 0, cv::INTER_CUBIC);
     resized.copyTo(curImage);
 
@@ -142,7 +139,7 @@ void* Run()
   return 0;
 }
 
-void* Run(cv::VideoCapture& capture)
+void* Run(cv::VideoCapture *capture)
 {
   int size = ivWidth*ivHeight;
   cv::CascadeClassifier cascade;
@@ -156,17 +153,20 @@ void* Run(cv::VideoCapture& capture)
   std::stringstream ss;
   dbgFile.open ("dbg.dat",std::ios::ate);
 
+  std::cout << "SAM: " << __LINE__ << std::endl;
   if(cascadePath != "")
     cascade.load( cascadePath );
 
+  std::cout << "SAM: " << __LINE__ << std::endl;
   while(!ivQuit)
   {
     // Grab an image
-    if(!capture.grab()){
+    if(!capture->grab()){
       std::cout << "error grabbing frame" << std::endl;
       break;
     }
-    capture.retrieve(frame);
+    std::cout << "SAM: " << __LINE__ << std::endl;
+    capture->retrieve(frame);
     ss << "./capture/img" << i << ".jpg";
     myImg = ss.str();
     std::cout << myImg;
@@ -175,7 +175,9 @@ void* Run(cv::VideoCapture& capture)
     i=i+1;
     std::cout << i << std::endl;
     frame.copyTo(curImage);
+    std::cout << "SAM: " << __LINE__ << std::endl;
 
+    std::cout << "SAM: " << __LINE__ << std::endl;
     cascade.detectMultiScale( frame, detectedFaces,
       1.1, 2, 0
       //|CASCADE_FIND_BIGGEST_OBJECT
@@ -183,9 +185,11 @@ void* Run(cv::VideoCapture& capture)
       |cv::CASCADE_SCALE_IMAGE,
       cv::Size(30, 30) );
 
+    std::cout << "SAM: " << __LINE__ << std::endl;
     Ndetections = detectedFaces.size();
     dbgFile << Ndetections << std::endl;
 
+    std::cout << "SAM: " << __LINE__ << std::endl;
     // for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
     for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
     {
@@ -195,6 +199,7 @@ void* Run(cv::VideoCapture& capture)
       detectBox.height = r->height;
       cv::rectangle(curImage,detectBox,cv::Scalar(0,0,255));
     }
+    std::cout << "SAM: " << __LINE__ << std::endl;
 
     // Display result
     HandleInput();
@@ -203,7 +208,7 @@ void* Run(cv::VideoCapture& capture)
     cv::imwrite( "./dbg.jpg", curImage );
   }
   dbgFile.close();
-  capture.release();
+  capture->release();
   return 0;
 }
 
