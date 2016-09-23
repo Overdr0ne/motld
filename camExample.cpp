@@ -4,6 +4,8 @@
 #include <ctime>
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <string>
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -45,39 +47,99 @@ typedef struct DebugInfo
 
 void Init(cv::VideoCapture& capture);
 void* Run(cv::VideoCapture& capture);
+void* Run(void);
 void HandleInput(int interval = 1);
 void MouseHandler(int event, int x, int y, int flags, void* param);
 void drawMouseBox();
 void writeDebug(DebugInfo dbgInfo);
+bool isVideo = true;
 
 int main(int argc, char *argv[])
 {
-  cv::VideoCapture capture(0);
+  // cv::VideoCapture capture(0);
 
-  Init(capture);
-  Run(capture);
+  // Init(capture);
+  // if(isVideo)
+  //   Run(capture);
+  // else
+    Run();
   cv::destroyAllWindows();
   return 0;
 }
 
-
 void Init(cv::VideoCapture& capture)
 {
   if(!capture.isOpened()){
-    std::cout << "error starting video capture" << std::endl;
-    exit(0);
+    isVideo = false;
   }
-  //propose a resolution
-  capture.set(CV_CAP_PROP_FRAME_WIDTH, RESOLUTION_X);
-  capture.set(CV_CAP_PROP_FRAME_HEIGHT, RESOLUTION_Y);
-  //get the actual (supported) resolution
-  ivWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-  ivHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-  std::cout << "camera/video resolution: " << ivWidth << "x" << ivHeight << std::endl;
+  else
+  {
+    //propose a resolution
+    capture.set(CV_CAP_PROP_FRAME_WIDTH, RESOLUTION_X);
+    capture.set(CV_CAP_PROP_FRAME_HEIGHT, RESOLUTION_Y);
+    //get the actual (supported) resolution
+    ivWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
+    ivHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+    std::cout << "camera/video resolution: " << ivWidth << "x" << ivHeight << std::endl;
 
+    cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
+    // cv::resizeWindow("MOCTLD", ivWidth, ivHeight);
+  }
   cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
-  // cv::resizeWindow("MOCTLD", ivWidth, ivHeight);
   cv::setMouseCallback("MOCTLD", MouseHandler);
+}
+
+void* Run()
+{
+  int size = ivWidth*ivHeight;
+  cv::CascadeClassifier cascade;
+  std::vector<cv::Rect> detectedFaces;
+  std::vector<ObjectBox> trackBoxes;
+  cv::Rect detectBox;
+  std::ofstream dbgFile;
+  cv::Mat frame;
+  cv::Mat resized;
+  dbgFile.open ("dbg.dat",std::ios::ate);
+
+  if(cascadePath != "")
+    cascade.load( cascadePath );
+
+  while(!ivQuit)
+  {
+    // Grab an image
+    frame = cv::imread("./capture/img0.jpg");
+    std::cout << "here" << std::endl;
+    cv::resize(frame,resized,cv::Size(RESOLUTION_X,RESOLUTION_Y), 0, 0, cv::INTER_CUBIC);
+    resized.copyTo(curImage);
+
+    cascade.detectMultiScale( resized, detectedFaces,
+      1.1, 2, 0
+      //|CASCADE_FIND_BIGGEST_OBJECT
+      //|CASCADE_DO_ROUGH_SEARCH
+      |cv::CASCADE_SCALE_IMAGE,
+      cv::Size(30, 30) );
+
+    Ndetections = detectedFaces.size();
+    dbgFile << Ndetections << std::endl;
+
+    // for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
+    for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
+    {
+      detectBox.x = r->x;
+      detectBox.y = r->y;
+      detectBox.width = r->width;
+      detectBox.height = r->height;
+      cv::rectangle(curImage,detectBox,cv::Scalar(0,0,255));
+    }
+
+    // Display result
+    HandleInput();
+    drawMouseBox();
+    cv::imshow("MOCTLD", curImage);
+    cv::imwrite( "./dbg.jpg", curImage );
+  }
+  dbgFile.close();
+  return 0;
 }
 
 void* Run(cv::VideoCapture& capture)
@@ -89,6 +151,9 @@ void* Run(cv::VideoCapture& capture)
   cv::Rect detectBox;
   std::ofstream dbgFile;
   cv::Mat frame;
+  int i = 0;
+  std::string myImg;
+  std::stringstream ss;
   dbgFile.open ("dbg.dat",std::ios::ate);
 
   if(cascadePath != "")
@@ -102,6 +167,13 @@ void* Run(cv::VideoCapture& capture)
       break;
     }
     capture.retrieve(frame);
+    ss << "./capture/img" << i << ".jpg";
+    myImg = ss.str();
+    std::cout << myImg;
+    cv::imwrite( myImg, frame );
+    ss.str(std::string());
+    i=i+1;
+    std::cout << i << std::endl;
     frame.copyTo(curImage);
 
     cascade.detectMultiScale( frame, detectedFaces,
