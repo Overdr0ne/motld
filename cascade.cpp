@@ -58,11 +58,10 @@ char imgPath[100] = "./img.jpg";
 
 int main(int argc, char *argv[])
 {
-  if(argc==1)
+  if(argc==2)
   {
-    printf("%s",argv[1]);
-    snprintf(imgPath,100,"%s\0",argv[1]);
-    printf("%s",imgPath);
+    snprintf(imgPath,100,"%s%c",argv[1],'\0');
+    printf("detect image path: %s\n",imgPath);
   }
   cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
   cv::setMouseCallback("MOCTLD", MouseHandler);
@@ -100,7 +99,7 @@ void* Run()
       cv::Size(30, 30) );
 
     Ndetections = detectedFaces.size();
-    dbgFile << Ndetections << std::endl;
+    std::cout << Ndetections << std::endl;
 
     for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
     {
