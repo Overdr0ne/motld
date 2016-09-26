@@ -35,7 +35,7 @@ cv::Point gate[2];
 int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
 bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true, drawGateEnabled = false;
-std::string cascadePath = "../haarcascades/haarcascade_frontalface_alt.xml";
+std::string cascadePath;
 int Ndetections = 0;
 cv::VideoCapture *capture = NULL;
 
@@ -54,15 +54,47 @@ void MouseHandler(int event, int x, int y, int flags, void* param);
 void drawMouseBox();
 void writeDebug(DebugInfo dbgInfo);
 bool isVideo = true;
-char imgPath[100] = "./img.jpg";
+char* imgPath;
+
+char* getCmdOption(char ** begin, char ** end, const std::string & option)
+{
+    char ** itr = std::find(begin, end, option);
+    if (itr != end && ++itr != end)
+    {
+        return *itr;
+    }
+    return 0;
+}
+
+bool cmdOptionExists(char** begin, char** end, const std::string& option)
+{
+    return std::find(begin, end, option) != end;
+}
 
 int main(int argc, char *argv[])
 {
-  if(argc==2)
-  {
-    snprintf(imgPath,100,"%s%c",argv[1],'\0');
-    printf("detect image path: %s\n",imgPath);
+  if(cmdOptionExists(argv, argv+argc, "-h"))
+    printf("./cascade <options> >nobjects\n");
+
+  imgPath = getCmdOption(argv, argv + argc, "--image-path");
+  if(!imgPath) {
+    printf("No image path provided. Using default path...\n");
+    imgPath = new char[sizeof("./img.jpg")];
+    snprintf(imgPath,sizeof("./img.jpg"),"./img.jpg");
   }
+  std::cout << "detect image path: " << imgPath << std::endl;
+
+  if(cmdOptionExists(argv, argv+argc, "--cascade-path"))
+  {
+    getCmdOption(argv, argv + argc, "--cascade-path");
+  }
+  else
+  {
+    std::cout << "No cascade path provided. Using default path..." << std::endl;
+    cascadePath = "../haarcascades/haarcascade_frontalface_alt.xml";
+  }
+  std::cout << "cascade path: " << cascadePath << std::endl;
+
   cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
   cv::setMouseCallback("MOCTLD", MouseHandler);
   Run();
