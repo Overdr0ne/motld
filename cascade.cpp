@@ -55,7 +55,8 @@ void MouseHandler(int event, int x, int y, int flags, void* param);
 void drawMouseBox();
 void writeDebug(DebugInfo dbgInfo);
 bool isVideo = true;
-char* imgPath;
+char* detectImgPath;
+char* dbgImgPath;
 
 char* getCmdOption(char ** begin, char ** end, const std::string & option)
 {
@@ -72,18 +73,42 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option)
     return std::find(begin, end, option) != end;
 }
 
-int main(int argc, char *argv[])
+bool parseArgs(int argc, char *argv[])
 {
-  if(cmdOptionExists(argv, argv+argc, "-h"))
-    printf("./cascade <options> >nobjects\n");
-
-  imgPath = getCmdOption(argv, argv + argc, "--image-path");
-  if(!imgPath) {
-    printf("No image path provided. Using default path...\n");
-    imgPath = new char[sizeof("./img.jpg")];
-    snprintf(imgPath,sizeof("./img.jpg"),"./img.jpg");
+  if(cmdOptionExists(argv, argv+argc, "-h") ||
+     cmdOptionExists(argv, argv+argc, "--help"))
+  {
+    std::cout << "Usage: ./cascade <options> >nobjects" << std::endl
+              << "  --detect-image-path <image path> " << std::endl
+              << "    image to run the cascade detector on" << std::endl
+              << "    (default: ./detect.jpg)" << std::endl
+              << "  --dbg-image-path <dbg-image path>" << std::endl
+              << "    debug image showing detection bounding boxes" << std::endl
+              << "    (default: ./dbg.jpg)" << std::endl
+              << "  --count-path <count path>" << std::endl
+              << "    file to output the detection count to" << std::endl
+              << "    (default: ./count.dat)" << std::endl
+              << "  --cascade-path <cascade path>" << std::endl
+              << "    prelearned opencv cascade classifier" << std::endl
+              << "    (default: ../haarcascades/haarcascade_frontalface_alt.xml)" << std::endl;
+    return false;
   }
-  std::cout << "detect image path: " << imgPath << std::endl;
+
+  detectImgPath = getCmdOption(argv, argv + argc, "--detect-image-path");
+  if(!detectImgPath) {
+    printf("No image path provided. Using default path...\n");
+    detectImgPath = new char[sizeof("./detect.jpg")];
+    snprintf(detectImgPath,sizeof("./detect.jpg"),"./detect.jpg");
+  }
+  std::cout << "detect image path: " << detectImgPath << std::endl;
+
+  dbgImgPath = getCmdOption(argv, argv + argc, "--dbg-image-path");
+  if(!dbgImgPath) {
+    printf("No dbg image path provided. Using default path...\n");
+    dbgImgPath = new char[sizeof("./dbg.jpg")];
+    snprintf(dbgImgPath,sizeof("./dbg.jpg"),"./dbg.jpg");
+  }
+  std::cout << "dbg image path: " << dbgImgPath << std::endl;
 
   countPath = getCmdOption(argv, argv + argc, "--count-path");
   if(!countPath) {
@@ -104,6 +129,13 @@ int main(int argc, char *argv[])
   }
   std::cout << "cascade path: " << cascadePath << std::endl;
 
+  return true;
+}
+
+int main(int argc, char *argv[])
+{
+  if(!parseArgs(argc,argv))
+    return EXIT_SUCCESS;
   cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
   cv::setMouseCallback("MOCTLD", MouseHandler);
   Run();
@@ -128,7 +160,7 @@ void* Run()
   while(!ivQuit)
   {
     // Grab an image
-    frame = cv::imread(imgPath);
+    frame = cv::imread(detectImgPath);
     cv::resize(frame,resized,cv::Size(RESOLUTION_X,RESOLUTION_Y), 0, 0, cv::INTER_CUBIC);
     resized.copyTo(curImage);
 
@@ -155,7 +187,7 @@ void* Run()
     HandleInput();
     drawMouseBox();
     cv::imshow("MOCTLD", curImage);
-    cv::imwrite( "./dbg.jpg", curImage );
+    cv::imwrite( dbgImgPath, curImage );
   }
   countFile.close();
   return 0;

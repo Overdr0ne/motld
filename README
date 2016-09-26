@@ -16,9 +16,16 @@ Description:
 
   --image-path <image path>
     image to run the cascade detector on
+    (default: build/detect.jpg)
+
+  --dgb-image-path <image path>
+    debug image showing detection bounding boxes
+    (default: build/dbg.jpg)
 
   --count-path <count path>
     file to output the detection count to
+    (default: build/count.dat)
 
   --cascade-path <cascade path>
-    path to cascade file
+    prelearned opencv cascade classifier
+    (default: build/haarcascades/haarcascade_frontalface_alt.xml)
