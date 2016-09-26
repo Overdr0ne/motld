@@ -36,6 +36,7 @@ int mouseMode = MOUSE_MODE_IDLE;
 int drawMode = 255;
 bool learningEnabled = true, save = false, load = false, reset = false, cascadeDetect = false, drawPath = true, drawGateEnabled = false;
 std::string cascadePath;
+char* countPath;
 int Ndetections = 0;
 cv::VideoCapture *capture = NULL;
 
@@ -84,6 +85,14 @@ int main(int argc, char *argv[])
   }
   std::cout << "detect image path: " << imgPath << std::endl;
 
+  countPath = getCmdOption(argv, argv + argc, "--count-path");
+  if(!countPath) {
+    printf("No count path provided. Using default path...\n");
+    countPath = new char[sizeof("./count.dat")];
+    snprintf(countPath,sizeof("./count.dat"),"./count.dat");
+  }
+  std::cout << "detect count path: " << countPath << std::endl;
+
   if(cmdOptionExists(argv, argv+argc, "--cascade-path"))
   {
     getCmdOption(argv, argv + argc, "--cascade-path");
@@ -108,10 +117,10 @@ void* Run()
   std::vector<cv::Rect> detectedFaces;
   std::vector<ObjectBox> trackBoxes;
   cv::Rect detectBox;
-  std::ofstream dbgFile;
+  std::ofstream countFile;
   cv::Mat frame;
   cv::Mat resized;
-  dbgFile.open ("dbg.dat",std::ios::ate);
+  countFile.open (countPath,std::ios::ate);
 
   if(cascadePath != "")
     cascade.load( cascadePath );
@@ -131,7 +140,7 @@ void* Run()
       cv::Size(30, 30) );
 
     Ndetections = detectedFaces.size();
-    std::cout << Ndetections << std::endl;
+    countFile << Ndetections << std::endl;
 
     for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
     {
@@ -148,7 +157,7 @@ void* Run()
     cv::imshow("MOCTLD", curImage);
     cv::imwrite( "./dbg.jpg", curImage );
   }
-  dbgFile.close();
+  countFile.close();
   return 0;
 }
 
