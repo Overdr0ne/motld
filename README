@@ -1,15 +1,24 @@
-Installation:
+Build:
   in this directory,
      mkdir build
      cd build
      cmake ..
      make
 
-Usage:
-  In this directory, where img_detect.jpg is the image you would like to run
-  the cascade detector on.
-     ./cascade (img_detect.jpg) >(detection_count_output)
+Synopsis:
+  ./cascade <options>
+
+Description:
   This will continually detect objects in the image at that path, outputing the
   object count to std out for redirection. Be sure to run the cascade binary
   in this directory so it can find the learned cascade models in the directory
   above.
+
+  --image-path <image path>
+    image to run the cascade detector on
+
+  --count-path <count path>
+    file to output the detection count to
+
+  --cascade-path <cascade path>
+    path to cascade file
