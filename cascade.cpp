@@ -48,8 +48,8 @@ typedef struct DebugInfo
 } DebugInfo;
 
 void Init(cv::VideoCapture* capture);
-void* Run(cv::VideoCapture* capture);
-void* Run(void);
+int Run(cv::VideoCapture* capture);
+int Run(void);
 void HandleInput(int interval = 1);
 void MouseHandler(int event, int x, int y, int flags, void* param);
 void drawMouseBox();
@@ -134,16 +134,18 @@ bool parseArgs(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+  int rc = EXIT_FAILURE;
   if(!parseArgs(argc,argv))
     return EXIT_SUCCESS;
   cv::namedWindow("MOCTLD", 0); //CV_WINDOW_AUTOSIZE );
   cv::setMouseCallback("MOCTLD", MouseHandler);
-  Run();
+  if((rc=Run())<0)
+    return rc;
   cv::destroyAllWindows();
-  return 0;
+  return EXIT_SUCCESS;
 }
 
-void* Run()
+int Run()
 {
   cv::CascadeClassifier cascade;
   std::vector<cv::Rect> detectedFaces;
@@ -161,6 +163,11 @@ void* Run()
   {
     // Grab an image
     frame = cv::imread(detectImgPath);
+    if(!frame.data)
+    {
+      std::cout << "detect image not found" << std::endl;
+      return EXIT_FAILURE;
+    }
     cv::resize(frame,resized,cv::Size(RESOLUTION_X,RESOLUTION_Y), 0, 0, cv::INTER_CUBIC);
     resized.copyTo(curImage);
 
@@ -190,7 +197,7 @@ void* Run()
     cv::imwrite( dbgImgPath, curImage );
   }
   countFile.close();
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 void HandleInput(int interval)
