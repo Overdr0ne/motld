@@ -6,11 +6,14 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <boost/circular_buffer.hpp>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
-#include <opencv/cv.h>
+#include <opencv/cv.hpp>
 #include <opencv/highgui.h>
 
-#include "motld/MultiObjectTLD.h"
+//#include "motld/MultiObjectTLD.h"
 
 #define LOADCLASSIFIERATSTART 0
 #define CLASSIFIERFILENAME "test.moctld"
@@ -25,7 +28,24 @@
 #define MOUSE_MODE_IDLE 2
 #define MOUSE_MODE_ADD_GATE 4
 
+const int CB_LEN = 100;
+
 // #define _GLIBCXX_USE_CXX11_ABI 0
+
+struct ObjectBox
+{
+    /// x-component of top left coordinate
+  float x;
+  /// y-component of top left coordinate
+  float y;
+  /// width of the image section
+  float width;
+  /// height of the image section
+  float height;
+  /// identifies object, which is represented by ObjectBox
+  int objectId;
+  boost::circular_buffer<CvPoint> path;
+};
 
 cv::Mat curImage;
 bool ivQuit = false;
@@ -39,6 +59,11 @@ std::string cascadePath;
 char* countPath;
 int Ndetections = 0;
 cv::VideoCapture *capture = NULL;
+Display *display;
+Window root;
+Screen* screen;
+int xSpeed = 12,ySpeed=5;
+int dCenterMsk = 1;
 
 typedef struct DebugInfo
 {
@@ -57,6 +82,7 @@ void writeDebug(DebugInfo dbgInfo);
 bool isVideo = true;
 char* detectImgPath;
 char* dbgImgPath;
+int invDetectRate = 5;
 
 char* getCmdOption(char ** begin, char ** end, const std::string & option)
 {
@@ -147,6 +173,8 @@ int main(int argc, char *argv[])
 
 int Run()
 {
+  int count = 0;
+  bool faceDetected = false;
   cv::CascadeClassifier cascade;
   std::vector<cv::Rect> detectedFaces;
   std::vector<ObjectBox> trackBoxes;
@@ -155,14 +183,44 @@ int Run()
   cv::Mat frame;
   cv::Mat resized;
   countFile.open (countPath,std::ios::ate);
+  int centerX_,centerX,centerY_,centerY,dCenterX,dCenterY;
+  bool result;
+  int mouseX,mouseY;
+  int win_x, win_y;
+  unsigned int mask;
+  Window ret_child;
+  Window ret_root;
+
+  display = XOpenDisplay(0);
+  screen = DefaultScreenOfDisplay(display);
+  root = DefaultRootWindow(display);
+  XQueryPointer(display, root, &ret_root, &ret_child, &centerX_, &centerY_,
+      &win_x, &win_y, &mask);
+  XFlush(display);
+  XCloseDisplay(display);
 
   if(cascadePath != "")
     cascade.load( cascadePath );
 
+  cv::VideoCapture capture(0);
+  if(!capture.isOpened()){
+    std::cout << "error starting video capture" << std::endl;
+    exit(0);
+  }
+  //propose a resolution
+  capture.set(CV_CAP_PROP_FRAME_WIDTH, RESOLUTION_X);
+  capture.set(CV_CAP_PROP_FRAME_HEIGHT, RESOLUTION_Y);
+
   while(!ivQuit)
   {
-    // Grab an image
-    frame = cv::imread(detectImgPath);
+    display = XOpenDisplay(0);
+    screen = DefaultScreenOfDisplay(display);
+    root = DefaultRootWindow(display);
+    if(!capture.grab()){
+      std::cout << "error grabbing frame" << std::endl;
+      break;
+    }
+    capture.retrieve(frame);
     if(!frame.data)
     {
       std::cout << "detect image not found" << std::endl;
@@ -170,31 +228,67 @@ int Run()
     }
     cv::resize(frame,resized,cv::Size(RESOLUTION_X,RESOLUTION_Y), 0, 0, cv::INTER_CUBIC);
     resized.copyTo(curImage);
-
-    cascade.detectMultiScale( resized, detectedFaces,
-      1.1, 2, 0
-      //|CASCADE_FIND_BIGGEST_OBJECT
-      //|CASCADE_DO_ROUGH_SEARCH
-      |cv::CASCADE_SCALE_IMAGE,
-      cv::Size(30, 30) );
-
-    Ndetections = detectedFaces.size();
-    countFile << Ndetections << std::endl;
-
-    for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
+    if(curImage.empty())
     {
-      detectBox.x = r->x;
-      detectBox.y = r->y;
-      detectBox.width = r->width;
-      detectBox.height = r->height;
-      cv::rectangle(curImage,detectBox,cv::Scalar(0,0,255));
+      std::cout << "detect image not found" << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    if(count%invDetectRate)
+    {
+      cascade.detectMultiScale( resized, detectedFaces,
+        1.1, 2, 0
+        //|CASCADE_FIND_BIGGEST_OBJECT
+        //|CASCADE_DO_ROUGH_SEARCH
+        |cv::CASCADE_SCALE_IMAGE,
+        cv::Size(30, 30) );
+
+      Ndetections = detectedFaces.size();
+      countFile << Ndetections << std::endl;
+
+      for( std::vector<cv::Rect>::const_iterator r = detectedFaces.begin(); r != detectedFaces.end(); r++ )
+      {
+        faceDetected = true;
+        detectBox.x = r->x;
+        detectBox.y = r->y;
+        detectBox.width = r->width;
+        detectBox.height = r->height;
+      }
+    }
+    cv::rectangle(curImage,detectBox,cv::Scalar(0,0,255));
+
+    if(faceDetected)
+    {
+      //move pointer proportionally with face movement
+      centerX = centerX_;
+      centerX_ = detectBox.x + 0.5 * detectBox.width;
+      centerY = centerY_;
+      centerY_ = detectBox.y + 0.5 * detectBox.height;
+      dCenterX = centerX_ - centerX;
+      if(dCenterX<2 && dCenterX>-2)
+        dCenterX = 0;
+      dCenterY = centerY_ - centerY;
+      if(dCenterY<2 && dCenterY>-2)
+        dCenterY = 0;
+      root = XDefaultRootWindow(display);
+      XQueryPointer(display, root, &ret_root, &ret_child, &mouseX, &mouseY,
+          &win_x, &win_y, &mask);
+      //result = XQueryPointer(display, 0, 0,
+      //          //0, &mouseX, &mouseY, 0, 0,
+      //                    //0);
+      mouseX = mouseX + dCenterX*xSpeed;
+      mouseY = mouseY + dCenterY*ySpeed;
+      XWarpPointer(display, None, root, 0, 0, 0, 0, mouseX, mouseY);
     }
 
     // Display result
     HandleInput();
-    drawMouseBox();
+    //drawMouseBox();
     cv::imshow("MOCTLD", curImage);
     cv::imwrite( dbgImgPath, curImage );
+    XFlush(display);
+    XCloseDisplay(display);
+    count++;
   }
   countFile.close();
   return EXIT_SUCCESS;
@@ -207,10 +301,6 @@ void HandleInput(int interval)
   {
     switch (key)
     {
-      case 'd': drawMode ^= DEBUG_DRAW_DETECTIONS;  break;
-      case 't': drawMode ^= DEBUG_DRAW_CROSSES;  break;
-      case 'p': drawMode ^= DEBUG_DRAW_PATCHES;  break;
-      case 'h': drawMode ^= DEBUG_DRAW_PATH;  break;
       case 'c': cascadeDetect = !cascadeDetect;  break;
       case 'g': drawGateEnabled = true; break;
       case 'l':
@@ -222,7 +312,7 @@ void HandleInput(int interval)
       case 'o': load = true;  break;
       case 27:  ivQuit = true; break; //ESC
       default:
-        //std::cout << "unhandled key-code: " << key << std::endl;
+        std::cout << "unhandled key-code: " << key << std::endl;
         break;
     }
   }
