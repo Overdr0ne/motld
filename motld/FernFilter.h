@@ -260,6 +260,11 @@ FernFilter::FernFilter(const int & width, const int & height, const int & numFer
   initializeFerns();
 }
 
+//void FernFilter::clearObjects()
+//{
+  //ivNumObjects = 0;
+//}
+
 const std::vector<Matrix> FernFilter::addObjects(const Matrix& image, const std::vector<ObjectBox>& boxes)
 {
   std::vector<Matrix> result;

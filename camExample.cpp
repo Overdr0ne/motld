@@ -38,6 +38,8 @@ There are some keys to customize which components are displayed:
 #include <ctime>
 #include <iostream>
 #include <fstream>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -80,6 +82,10 @@ std::clock_t c_end3;
 // auto t_start;
 // auto t_end;
 int Ndetections = 0;
+Display *display;
+Window root;
+Screen* screen;
+int xSpeed = 9,ySpeed=5;
 
 typedef struct DebugInfo
 {
@@ -106,7 +112,6 @@ int main(int argc, char *argv[])
   cv::destroyAllWindows();
   return 0;
 }
-
 
 void Init(cv::VideoCapture& capture)
 {
@@ -136,6 +141,14 @@ void* Run(cv::VideoCapture& capture)
   std::vector<cv::Rect> detectedFaces;
   std::vector<ObjectBox> trackBoxes;
   ObjectBox detectBox;
+  ObjectBox firstBox;
+  int centerX_,centerX,centerY_,centerY,dCenterX,dCenterY;
+  bool result;
+  int mouseX,mouseY;
+  int win_x, win_y;
+  unsigned int mask;
+  Window ret_child;
+  Window ret_root;
 
   // Initialize MultiObjectTLD
   #if LOADCLASSIFIERATSTART
@@ -155,6 +168,10 @@ void* Run(cv::VideoCapture& capture)
   unsigned char img[size*3];
   while(!ivQuit)
   {
+    display = XOpenDisplay(0);
+    screen = DefaultScreenOfDisplay(display);
+    root = DefaultRootWindow(display);
+
     /*
     if(reset){
       p = *(new MultiObjectTLD(ivWidth, ivHeight, COLOR_MODE_RGB));
@@ -248,12 +265,42 @@ void* Run(cv::VideoCapture& capture)
         detectBox.y = r->y;
         detectBox.width = r->width;
         detectBox.height = r->height;
-        if(p.isNewObject(detectBox))
+        if(p.isNewObject(detectBox)) {
           p.addObject(detectBox);
+        }
+        centerX_ = detectBox.x + 0.5 * detectBox.width;
+        centerY_ = detectBox.y + 0.5 * detectBox.height;
+        std::cout << "3" << std::endl;
+        //p.~MultiObjectTLD();
+        //p.MultiObjectTLD(ivWidth, ivHeight, settings);
       }
       //printf("size detectedFaces: %i\n", detectedFaces.size());
     }
     count++;
+
+    if(p.getObjectTotal()>0) {
+      firstBox = p.getObjectBox();
+      centerX = centerX_;
+      centerX_ = firstBox.x + 0.5 * firstBox.width;
+      centerY = centerY_;
+      centerY_ = firstBox.y + 0.5 * firstBox.height;
+      dCenterX = centerX_ - centerX;
+      dCenterY = centerY_ - centerY;
+      std::cout << "1" << std::endl;
+      root = XDefaultRootWindow(display);
+      XQueryPointer(display, root, &ret_root, &ret_child, &mouseX, &mouseY,
+                     &win_x, &win_y, &mask);
+      std::cout << "2" << std::endl;
+      //result = XQueryPointer(display, 0, 0,
+          //0, &mouseX, &mouseY, 0, 0,
+          //0);
+      mouseX = mouseX + dCenterX*xSpeed;
+      mouseY = mouseY + dCenterY*ySpeed;
+      std::cout << centerX << ' ' << mouseX << std::endl;
+      std::cout << centerY << ' ' << mouseY << std::endl;
+      XWarpPointer(display, None, root, 0, 0, 0, 0, mouseX, mouseY);
+      std::cout << "4" << std::endl;
+    }
 
     // Display result
     HandleInput();
@@ -278,6 +325,8 @@ void* Run(cv::VideoCapture& capture)
       p.saveClassifier((char*)CLASSIFIERFILENAME);
       save = false;
     }
+    XFlush(display);
+    XCloseDisplay(display);
   }
   //delete[] img;
   capture.release();

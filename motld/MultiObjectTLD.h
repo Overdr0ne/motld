@@ -147,6 +147,7 @@ public:
   int getObjectTotal() { return ivNObjects;}
   int getSide0Cnt() { return ivSide0Cnt;}
   int getSide1Cnt() { return ivSide1Cnt;}
+  void clearObjects();
 
   /** @brief Saves an output image to file in PPM format.
    * @param src the same as passed to processFrame()
@@ -211,6 +212,12 @@ private:
 /**************************************************************************************************
  * IMPLEMENTATION                                                                                 *
  **************************************************************************************************/
+
+//void MultiObjectTLD::clearObjects()
+//{
+  //obs.clear();
+  //ivNObjects = 0;
+//}
 
 void MultiObjectTLD::addObject(ObjectBox b)
 {
